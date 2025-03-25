@@ -1,0 +1,20 @@
+host: "127.0.0.1"
+port: 8080
+protocols:
+  - name: "http"
+    enabled: true
+    settings:
+      port: 8081
+  - name: "grpc"
+    enabled: true
+    settings:
+      port: 8082
+  - name: "graphql"
+    enabled: true
+    settings:
+      port: 8083
+  - name: "mqtt"
+    enabled: true
+    settings:
+      broker_url: "tcp://localhost:1883"
+      client_id: "iron-babel-mqtt" 

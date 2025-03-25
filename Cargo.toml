@@ -1,0 +1,54 @@
+[package]
+name = "iron-babel"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A cross-protocol API gateway for seamless service communication"
+license = "MIT"
+
+[dependencies]
+# Core async runtime
+tokio = { version = "1.36", features = ["rt-multi-thread", "signal", "macros", "fs"] }
+
+# HTTP server and client
+axum = "0.7"
+hyper = "1.1"
+
+# Protocol support
+tonic = "0.11"
+async-graphql = "4.0"
+paho-mqtt = "0.12"
+ws = "0.9"
+
+# Serialization
+serde = "1.0"
+serde_json = "1.0"
+prost = "0.12"
+
+# Configuration
+config = "0.13"
+serde_yaml = "0.9"
+toml = "0.8"
+
+# Logging and metrics
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+metrics = "0.22"
+metrics-exporter-prometheus = "0.13"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Utilities
+async-trait = "0.1"
+futures = "0.3"
+tower = "0.4"
+tower-http = "0.5"
+
+[dev-dependencies]
+tokio-test = "0.4"
+wiremock = "0.5"
+
+[build-dependencies]
+tonic-build = "0.11" 

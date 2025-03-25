@@ -1,0 +1,8 @@
+[build]
+target-dir = "target"
+
+[target.'cfg(target_os = "macos")']
+rustflags = ["-C", "target-feature=+crt-static"]
+
+[env]
+RUSTFLAGS = "-C target-feature=+crt-static" 

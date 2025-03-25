@@ -9,6 +9,55 @@ target/
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Rust profiling and debugging
+flamegraph.svg
+perf.data
+perf.data.old
+
+# Rust coverage reports
+coverage/
+*.profraw
+*.profdata
+
+# Rust documentation
+doc/
+
+# Rust package manager lock file (uncomment if you want to ignore it)
+# Cargo.lock
+
+# Rust generated files
+*.rlib
+*.rmeta
+*.d
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 # RustRover
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
