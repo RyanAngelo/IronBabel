@@ -11,7 +11,7 @@ rustflags = [
 
 # OS-specific settings
 [target.'cfg(target_os = "macos")']
-rustflags = ["-C", "target-feature=+crt-static"]
+rustflags = []
 
 [target.'cfg(target_os = "linux")']
 rustflags = []
