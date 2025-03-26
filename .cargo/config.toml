@@ -1,8 +1,35 @@
 [build]
 target-dir = "target"
+jobs = 8  # Set to number of CPU cores
 
+# Common settings for all targets
+[target.'cfg(any())']
+rustflags = [
+    "-C", "incremental=true",
+    "-C", "target-cpu=native"
+]
+
+# OS-specific settings
 [target.'cfg(target_os = "macos")']
 rustflags = ["-C", "target-feature=+crt-static"]
 
-[env]
-RUSTFLAGS = "-C target-feature=+crt-static" 
+[target.'cfg(target_os = "linux")']
+rustflags = []
+
+[target.'cfg(target_os = "windows")']
+rustflags = []
+
+# Performance optimizations by build type
+[target.debug]
+rustflags = [
+    "-C", "codegen-units=256",
+    "-C", "opt-level=0"
+]
+
+[target.release]
+rustflags = [
+    "-C", "codegen-units=16",
+    "-C", "opt-level=3",
+    "-C", "lto=fat",
+    "-C", "panic=abort"
+] 
