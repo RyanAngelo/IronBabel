@@ -5,6 +5,8 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     git \
+    cmake \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools
