@@ -5,14 +5,12 @@ use super::Protocol;
 
 pub struct GrpcProtocol {
     name: String,
-    settings: Value,
 }
 
 impl GrpcProtocol {
     pub fn new(settings: Value) -> Result<Self> {
         Ok(Self {
             name: "grpc".to_string(),
-            settings,
         })
     }
 }

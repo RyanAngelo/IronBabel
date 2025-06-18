@@ -1,4 +1,4 @@
-FROM rust:1.85-slim-bullseye
+FROM rust:1.86-slim-bullseye
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools
-RUN cargo install cargo-watch cargo-edit cargo-expand
+RUN cargo install cargo-watch cargo-edit cargo-expand cargo-outdated
 
 # Set working directory
 WORKDIR /workspace

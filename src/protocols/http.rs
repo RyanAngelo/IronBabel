@@ -5,14 +5,12 @@ use super::Protocol;
 
 pub struct HttpProtocol {
     name: String,
-    settings: Value,
 }
 
 impl HttpProtocol {
     pub fn new(settings: Value) -> Result<Self> {
         Ok(Self {
             name: "http".to_string(),
-            settings,
         })
     }
 }

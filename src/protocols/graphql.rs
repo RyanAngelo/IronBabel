@@ -5,14 +5,12 @@ use super::Protocol;
 
 pub struct GraphQLProtocol {
     name: String,
-    settings: Value,
 }
 
 impl GraphQLProtocol {
     pub fn new(settings: Value) -> Result<Self> {
         Ok(Self {
             name: "graphql".to_string(),
-            settings,
         })
     }
 }
