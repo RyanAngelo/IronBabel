@@ -23,6 +23,9 @@ RUN chown -R vscode:vscode /usr/local/cargo
 
 USER vscode
 
+# Install clippy for the Rust toolchain (must be done as vscode user)
+RUN rustup component add clippy
+
 # Set environment variables
 ENV RUST_BACKTRACE=1
 ENV RUST_LOG=debug
