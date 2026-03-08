@@ -23,6 +23,7 @@ pub fn create_test_config() -> GatewayConfig {
                 }),
             },
         ],
+        routes: vec![],
     }
 }
 
@@ -37,5 +38,6 @@ pub fn create_minimal_test_config() -> GatewayConfig {
                 settings: json!({}),
             },
         ],
+        routes: vec![],
     }
 } 
