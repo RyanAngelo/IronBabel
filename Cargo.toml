@@ -8,11 +8,12 @@ license = "MIT"
 
 [dependencies]
 # Core async runtime
-tokio = { version = "1.36", features = ["rt-multi-thread", "signal", "macros", "fs"] }
+tokio = { version = "1.45", features = ["rt-multi-thread", "signal", "macros", "fs"] }
 
 # HTTP server and client
 axum = "0.8.8"
 hyper = "1.1"
+reqwest = { version = "0.12", features = ["json", "stream"] }
 
 # Protocol support
 tonic = "0.14.5"
@@ -44,7 +45,7 @@ anyhow = "1.0"
 async-trait = "0.1"
 futures = "0.3"
 tower = "0.5.3"
-tower-http = "0.6.8"
+tower-http = { version = "0.6.8", features = ["limit", "timeout", "trace"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
@@ -55,4 +56,4 @@ tonic-build = "0.14.5"
 
 [[bin]]
 name = "create_licenses"
-path = "scripts/create_licenses.rs" 
+path = "scripts/create_licenses.rs"

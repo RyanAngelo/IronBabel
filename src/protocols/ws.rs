@@ -5,14 +5,12 @@ use super::Protocol;
 
 pub struct WebSocketProtocol {
     name: String,
-    _settings: Value,
 }
 
 impl WebSocketProtocol {
-    pub fn new(settings: Value) -> Result<Self> {
+    pub fn new(_settings: Value) -> Result<Self> {
         Ok(Self {
             name: "websocket".to_string(),
-            _settings: settings,
         })
     }
 }

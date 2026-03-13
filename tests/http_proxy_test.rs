@@ -1,0 +1,251 @@
+//! Integration tests for HTTP proxy behavior using wiremock as a backend.
+
+use iron_babel::config::RouteConfig;
+use iron_babel::core::Router;
+use iron_babel::gateway::http::HttpGateway;
+use iron_babel::protocols::http::HttpProtocol;
+use std::sync::Arc;
+use wiremock::matchers::{header, method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
+
+fn make_route(p: &str, target: &str) -> RouteConfig {
+    RouteConfig {
+        path: p.to_string(),
+        target: target.to_string(),
+        methods: vec![],
+        timeout_secs: Some(5),
+        strip_prefix: None,
+    }
+}
+
+fn gateway() -> HttpGateway {
+    let protocol = Arc::new(HttpProtocol::new(serde_json::Value::Null).unwrap());
+    HttpGateway::new(protocol)
+}
+
+// ---------------------------------------------------------------------------
+// Router unit tests (using real RouteConfig)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn router_routes_to_longest_matching_prefix() {
+    let router = Router::new(vec![
+        make_route("/api", "http://backend-a"),
+        make_route("/api/v2", "http://backend-b"),
+    ]);
+    let route = router.route("GET", "/api/v2/users").unwrap();
+    assert_eq!(route.target, "http://backend-b");
+}
+
+#[test]
+fn router_falls_back_to_shorter_prefix() {
+    let router = Router::new(vec![
+        make_route("/api", "http://backend-a"),
+        make_route("/api/v2", "http://backend-b"),
+    ]);
+    let route = router.route("GET", "/api/v1/users").unwrap();
+    assert_eq!(route.target, "http://backend-a");
+}
+
+#[test]
+fn router_returns_none_for_unmatched_path() {
+    let router = Router::new(vec![make_route("/api", "http://backend-a")]);
+    assert!(router.route("GET", "/health").is_none());
+}
+
+#[test]
+fn router_returns_none_for_wrong_method() {
+    let router = Router::new(vec![RouteConfig {
+        path: "/api".to_string(),
+        target: "http://backend-a".to_string(),
+        methods: vec!["GET".to_string()],
+        timeout_secs: None,
+        strip_prefix: None,
+    }]);
+    assert!(router.route("DELETE", "/api/resource").is_none());
+}
+
+#[test]
+fn router_method_match_is_case_insensitive() {
+    let router = Router::new(vec![RouteConfig {
+        path: "/api".to_string(),
+        target: "http://backend-a".to_string(),
+        methods: vec!["get".to_string()],
+        timeout_secs: None,
+        strip_prefix: None,
+    }]);
+    assert!(router.route("GET", "/api/users").is_some());
+}
+
+#[test]
+fn router_empty_routes_returns_none() {
+    let router = Router::new(vec![]);
+    assert!(router.route("GET", "/anything").is_none());
+}
+
+// ---------------------------------------------------------------------------
+// HTTP proxy integration tests (wiremock backend)
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn proxy_forwards_get_and_returns_response() {
+    let mock_server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/api/users"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_string(r#"[{"id":1}]"#)
+                .insert_header("content-type", "application/json"),
+        )
+        .mount(&mock_server)
+        .await;
+
+    let gw = gateway();
+    let (status, headers, body) = gw
+        .proxy(
+            reqwest::Method::GET,
+            &mock_server.uri(),
+            "/api/users",
+            None,
+            &[],
+            vec![],
+            5,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(status, 200);
+    assert_eq!(body, br#"[{"id":1}]"#);
+    assert!(headers.iter().any(|(k, _)| k.eq_ignore_ascii_case("content-type")));
+}
+
+#[tokio::test]
+async fn proxy_forwards_post_body() {
+    let mock_server = MockServer::start().await;
+
+    Mock::given(method("POST"))
+        .and(path("/api/items"))
+        .respond_with(ResponseTemplate::new(201).set_body_string("created"))
+        .mount(&mock_server)
+        .await;
+
+    let gw = gateway();
+    let (status, _headers, body) = gw
+        .proxy(
+            reqwest::Method::POST,
+            &mock_server.uri(),
+            "/api/items",
+            None,
+            &[("content-type".to_string(), "application/json".to_string())],
+            br#"{"name":"test"}"#.to_vec(),
+            5,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(status, 201);
+    assert_eq!(body, b"created");
+}
+
+#[tokio::test]
+async fn proxy_forwards_query_string() {
+    let mock_server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/search"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("results"))
+        .mount(&mock_server)
+        .await;
+
+    let gw = gateway();
+    let (status, _, _) = gw
+        .proxy(
+            reqwest::Method::GET,
+            &mock_server.uri(),
+            "/search",
+            Some("q=rust&limit=10"),
+            &[],
+            vec![],
+            5,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(status, 200);
+}
+
+#[tokio::test]
+async fn proxy_strips_hop_by_hop_headers_from_request() {
+    let mock_server = MockServer::start().await;
+
+    // The backend should NOT receive Transfer-Encoding
+    Mock::given(method("GET"))
+        .and(path("/"))
+        // If Transfer-Encoding were forwarded, wiremock would see it
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let gw = gateway();
+    let hop_headers = vec![
+        ("transfer-encoding".to_string(), "chunked".to_string()),
+        ("connection".to_string(), "keep-alive".to_string()),
+        ("x-custom".to_string(), "preserved".to_string()),
+    ];
+
+    let (status, _, _) = gw
+        .proxy(reqwest::Method::GET, &mock_server.uri(), "/", None, &hop_headers, vec![], 5)
+        .await
+        .unwrap();
+
+    assert_eq!(status, 200);
+}
+
+#[tokio::test]
+async fn proxy_forwards_custom_request_header() {
+    let mock_server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .and(header("x-request-id", "abc-123"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let gw = gateway();
+    let (status, _, _) = gw
+        .proxy(
+            reqwest::Method::GET,
+            &mock_server.uri(),
+            "/",
+            None,
+            &[("x-request-id".to_string(), "abc-123".to_string())],
+            vec![],
+            5,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(status, 200);
+}
+
+#[tokio::test]
+async fn proxy_returns_backend_error_status() {
+    let mock_server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/missing"))
+        .respond_with(ResponseTemplate::new(404).set_body_string("not found"))
+        .mount(&mock_server)
+        .await;
+
+    let gw = gateway();
+    let (status, _, body) = gw
+        .proxy(reqwest::Method::GET, &mock_server.uri(), "/missing", None, &[], vec![], 5)
+        .await
+        .unwrap();
+
+    assert_eq!(status, 404);
+    assert_eq!(body, b"not found");
+}

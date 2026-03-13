@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools
-RUN cargo install cargo-watch cargo-edit cargo-expand
+RUN cargo install cargo-watch cargo-edit cargo-expand cargo-outdated
 
 # Set working directory
 WORKDIR /workspace
@@ -22,6 +22,9 @@ RUN useradd -m -u 1000 vscode
 RUN chown -R vscode:vscode /usr/local/cargo
 
 USER vscode
+
+# Install clippy for the Rust toolchain (must be done as vscode user)
+RUN rustup component add clippy
 
 # Set environment variables
 ENV RUST_BACKTRACE=1

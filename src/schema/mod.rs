@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use std::future::Future;
 
 use crate::error::Result;
 
@@ -16,6 +17,11 @@ pub struct Schema {
 
 #[async_trait]
 pub trait SchemaManager: Send + Sync {
-    async fn discover_schema(&self, endpoint: &str) -> Result<Schema>;
-    async fn generate_schema(&self, protocol: &str, content: &str) -> Result<Schema>;
+    fn discover_schema(&self, endpoint: &str) -> impl Future<Output = Result<Schema>> + Send;
+    fn generate_schema(&self, protocol: &str, content: &str) -> impl Future<Output = Result<Schema>> + Send;
+}
+
+pub trait SchemaGenerator {
+    fn discover_schema(&self, endpoint: &str) -> impl Future<Output = Result<Schema>> + Send;
+    fn generate_schema(&self, protocol: &str, content: &str) -> impl Future<Output = Result<Schema>> + Send;
 } 
