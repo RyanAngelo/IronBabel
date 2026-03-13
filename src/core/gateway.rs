@@ -173,7 +173,7 @@ impl Gateway for DefaultGateway {
             .route("/", any(handle_request))
             .with_state(state)
             .layer(TraceLayer::new_for_http())
-            .layer(TimeoutLayer::new(Duration::from_secs(30)))
+            .layer(TimeoutLayer::with_status_code(axum::http::StatusCode::GATEWAY_TIMEOUT, Duration::from_secs(30)))
             .layer(RequestBodyLimitLayer::new(10 * 1024 * 1024));
 
         let shutdown = Arc::clone(&self.shutdown);
