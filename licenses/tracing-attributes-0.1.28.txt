@@ -1,0 +1,18 @@
+License Information for tracing-attributes v0.1.28
+==================================================
+
+Crate: tracing-attributes
+Version: 0.1.28
+License: MIT
+Repository: https://github.com/tokio-rs/tracing
+Authors: Tokio Contributors <team@tokio.rs>|Eliza Weisman <eliza@buoyant.io>|David Barsky <dbarsky@amazon.com>
+
+Description:
+Procedural macro attributes for automatically instrumenting functions.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tracing-attributes
+- The LICENSE or LICENSE-* files in the repository

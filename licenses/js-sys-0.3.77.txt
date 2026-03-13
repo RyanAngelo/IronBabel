@@ -1,0 +1,18 @@
+License Information for js-sys v0.3.77
+==================================================
+
+Crate: js-sys
+Version: 0.3.77
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/js-sys
+Authors: The wasm-bindgen Developers
+
+Description:
+Bindings for all JS global objects and functions in all JS environments like Node.js and browsers, built on `#[wasm_bindgen]` using the `wasm-bindgen` crate.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/js-sys
+- The LICENSE or LICENSE-* files in the repository

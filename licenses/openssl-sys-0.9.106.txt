@@ -1,0 +1,18 @@
+License Information for openssl-sys v0.9.106
+==================================================
+
+Crate: openssl-sys
+Version: 0.9.106
+License: MIT
+Repository: https://github.com/sfackler/rust-openssl
+Authors: Alex Crichton <alex@alexcrichton.com>|Steven Fackler <sfackler@gmail.com>
+
+Description:
+FFI bindings to OpenSSL
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/openssl-sys
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for arraydeque v0.5.1
+==================================================
+
+Crate: arraydeque
+Version: 0.5.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/andylokandy/arraydeque
+Authors: andylokandy
+
+Description:
+A ring buffer with a fixed capacity, which can be stored on the stack.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/arraydeque
+- The LICENSE or LICENSE-* files in the repository

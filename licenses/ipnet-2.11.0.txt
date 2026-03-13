@@ -1,0 +1,18 @@
+License Information for ipnet v2.11.0
+==================================================
+
+Crate: ipnet
+Version: 2.11.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/krisprice/ipnet
+Authors: Kris Price <kris@krisprice.nz>
+
+Description:
+Provides types and useful methods for working with IPv4 and IPv6 network addresses, commonly called IP prefixes. The new `IpNet`, `Ipv4Net`, and `Ipv6Net` types build on the existing `IpAddr`, `Ipv4Addr`, and `Ipv6Addr` types already provided in Rust's standard library and align to their design to stay consistent. The module also provides useful traits that extend `Ipv4Addr` and `Ipv6Addr` with methods for `Add`, `Sub`, `BitAnd`, and `BitOr` operations. The module only uses stable feature so it is guaranteed to compile using the stable toolchain.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ipnet
+- The LICENSE or LICENSE-* files in the repository

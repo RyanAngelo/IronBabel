@@ -1,0 +1,18 @@
+License Information for const-random-macro v0.1.16
+==================================================
+
+Crate: const-random-macro
+Version: 0.1.16
+License: Apache-2.0 OR MIT
+Repository: https://github.com/tkaitchuck/constrandom
+Authors: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
+
+Description:
+Provides the procedural macro used by const-random
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/const-random-macro
+- The LICENSE or LICENSE-* files in the repository

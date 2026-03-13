@@ -1,0 +1,18 @@
+License Information for toml v0.9.12+spec-1.1.0
+==================================================
+
+Crate: toml
+Version: 0.9.12+spec-1.1.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/toml-rs/toml
+Authors: N/A
+
+Description:
+A native Rust encoder and decoder of TOML-formatted files and streams. Provides implementations of the standard Serialize/Deserialize traits for TOML data to facilitate deserializing and serializing Rust structures.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/toml
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for paho-mqtt-sys v0.10.3
+==================================================
+
+Crate: paho-mqtt-sys
+Version: 0.10.3
+License: EPL-2.0
+Repository: https://github.com/eclipse/paho.mqtt.rust
+Authors: Frank Pagliughi <fpagliughi@mindspring.com>
+
+Description:
+Low-level, unsafe Rust wrapper for the Paho MQTT C Client Library. This is part of the official Eclipse Paho Rust Client Library.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/paho-mqtt-sys
+- The LICENSE or LICENSE-* files in the repository

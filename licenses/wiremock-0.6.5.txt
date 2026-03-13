@@ -1,0 +1,18 @@
+License Information for wiremock v0.6.5
+==================================================
+
+Crate: wiremock
+Version: 0.6.5
+License: Apache-2.0 OR MIT
+Repository: https://github.com/LukeMathWalker/wiremock-rs
+Authors: Luca Palmieri <rust@lpalmieri.com>
+
+Description:
+HTTP mocking to test Rust applications.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/wiremock
+- The LICENSE or LICENSE-* files in the repository

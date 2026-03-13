@@ -1,0 +1,18 @@
+License Information for tower-layer v0.3.3
+==================================================
+
+Crate: tower-layer
+Version: 0.3.3
+License: MIT
+Repository: https://github.com/tower-rs/tower
+Authors: Tower Maintainers <team@tower-rs.com>
+
+Description:
+Decorates a `Service` to allow easy composition between `Service`s.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tower-layer
+- The LICENSE or LICENSE-* files in the repository

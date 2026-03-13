@@ -1,0 +1,18 @@
+License Information for mime v0.3.17
+==================================================
+
+Crate: mime
+Version: 0.3.17
+License: Apache-2.0 OR MIT
+Repository: https://github.com/hyperium/mime
+Authors: Sean McArthur <sean@seanmonstar.com>
+
+Description:
+Strongly Typed Mimes
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/mime
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for pest_derive v2.8.0
+==================================================
+
+Crate: pest_derive
+Version: 2.8.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/pest-parser/pest
+Authors: Dragoș Tiselice <dragostiselice@gmail.com>
+
+Description:
+pest's derive macro
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/pest_derive
+- The LICENSE or LICENSE-* files in the repository

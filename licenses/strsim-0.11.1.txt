@@ -1,0 +1,18 @@
+License Information for strsim v0.11.1
+==================================================
+
+Crate: strsim
+Version: 0.11.1
+License: MIT
+Repository: https://github.com/rapidfuzz/strsim-rs
+Authors: Danny Guo <danny@dannyguo.com>|maxbachmann <oss@maxbachmann.de>
+
+Description:
+Implementations of string similarity metrics. Includes Hamming, Levenshtein, OSA, Damerau-Levenshtein, Jaro, Jaro-Winkler, and Sørensen-Dice.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/strsim
+- The LICENSE or LICENSE-* files in the repository

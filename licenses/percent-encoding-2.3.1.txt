@@ -1,0 +1,18 @@
+License Information for percent-encoding v2.3.1
+==================================================
+
+Crate: percent-encoding
+Version: 2.3.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/servo/rust-url/
+Authors: The rust-url developers
+
+Description:
+Percent encoding and decoding
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/percent-encoding
+- The LICENSE or LICENSE-* files in the repository

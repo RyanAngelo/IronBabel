@@ -1,0 +1,18 @@
+License Information for pin-project-internal v1.1.10
+==================================================
+
+Crate: pin-project-internal
+Version: 1.1.10
+License: Apache-2.0 OR MIT
+Repository: https://github.com/taiki-e/pin-project
+Authors: N/A
+
+Description:
+Implementation detail of the `pin-project` crate.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/pin-project-internal
+- The LICENSE or LICENSE-* files in the repository

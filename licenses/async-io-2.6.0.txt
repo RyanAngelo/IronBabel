@@ -1,0 +1,18 @@
+License Information for async-io v2.6.0
+==================================================
+
+Crate: async-io
+Version: 2.6.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/smol-rs/async-io
+Authors: Stjepan Glavina <stjepang@gmail.com>
+
+Description:
+Async I/O and timers
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/async-io
+- The LICENSE or LICENSE-* files in the repository

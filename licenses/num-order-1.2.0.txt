@@ -1,0 +1,18 @@
+License Information for num-order v1.2.0
+==================================================
+
+Crate: num-order
+Version: 1.2.0
+License: Apache-2.0
+Repository: https://github.com/cmpute/num-order
+Authors: N/A
+
+Description:
+Numerically consistent `Eq`, `Ord` and `Hash` implementations for various `num` types (`u32`, `f64`, `num_bigint::BigInt`, etc.)
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/num-order
+- The LICENSE or LICENSE-* files in the repository

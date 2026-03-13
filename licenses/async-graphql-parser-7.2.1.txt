@@ -1,0 +1,18 @@
+License Information for async-graphql-parser v7.2.1
+==================================================
+
+Crate: async-graphql-parser
+Version: 7.2.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/async-graphql/async-graphql
+Authors: sunli <scott_s829@163.com>|Koxiaet
+
+Description:
+GraphQL query parser for async-graphql
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/async-graphql-parser
+- The LICENSE or LICENSE-* files in the repository

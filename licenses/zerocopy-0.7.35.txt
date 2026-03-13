@@ -1,0 +1,18 @@
+License Information for zerocopy v0.7.35
+==================================================
+
+Crate: zerocopy
+Version: 0.7.35
+License: Apache-2.0 OR BSD-2-Clause OR MIT
+Repository: https://github.com/google/zerocopy
+Authors: Joshua Liebow-Feeser <joshlf@google.com>
+
+Description:
+Utilities for zero-copy parsing and serialization
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/zerocopy
+- The LICENSE or LICENSE-* files in the repository

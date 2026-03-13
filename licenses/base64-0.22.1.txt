@@ -1,0 +1,18 @@
+License Information for base64 v0.22.1
+==================================================
+
+Crate: base64
+Version: 0.22.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/marshallpierce/rust-base64
+Authors: Marshall Pierce <marshall@mpierce.org>
+
+Description:
+encodes and decodes base64 as bytes or utf8
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/base64
+- The LICENSE or LICENSE-* files in the repository

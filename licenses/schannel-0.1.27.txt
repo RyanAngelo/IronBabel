@@ -1,0 +1,18 @@
+License Information for schannel v0.1.27
+==================================================
+
+Crate: schannel
+Version: 0.1.27
+License: MIT
+Repository: https://github.com/steffengy/schannel-rs
+Authors: Steven Fackler <sfackler@gmail.com>|Steffen Butzer <steffen.butzer@outlook.com>
+
+Description:
+Schannel bindings for rust, allowing SSL/TLS (e.g. https) without openssl
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/schannel
+- The LICENSE or LICENSE-* files in the repository

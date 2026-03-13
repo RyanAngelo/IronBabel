@@ -1,0 +1,18 @@
+License Information for strum v0.27.2
+==================================================
+
+Crate: strum
+Version: 0.27.2
+License: MIT
+Repository: https://github.com/Peternator7/strum
+Authors: Peter Glotfelty <peter.glotfelty@microsoft.com>
+
+Description:
+Helpful macros for working with enums and strings
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/strum
+- The LICENSE or LICENSE-* files in the repository

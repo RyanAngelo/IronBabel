@@ -1,0 +1,18 @@
+License Information for serde_json v1.0.149
+==================================================
+
+Crate: serde_json
+Version: 1.0.149
+License: Apache-2.0 OR MIT
+Repository: https://github.com/serde-rs/json
+Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>|David Tolnay <dtolnay@gmail.com>
+
+Description:
+A JSON serialization file format
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/serde_json
+- The LICENSE or LICENSE-* files in the repository

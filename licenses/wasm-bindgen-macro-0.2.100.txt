@@ -1,0 +1,18 @@
+License Information for wasm-bindgen-macro v0.2.100
+==================================================
+
+Crate: wasm-bindgen-macro
+Version: 0.2.100
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/macro
+Authors: The wasm-bindgen Developers
+
+Description:
+Definition of the `#[wasm_bindgen]` attribute, an internal dependency
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/wasm-bindgen-macro
+- The LICENSE or LICENSE-* files in the repository

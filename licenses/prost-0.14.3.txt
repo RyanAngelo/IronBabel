@@ -1,0 +1,18 @@
+License Information for prost v0.14.3
+==================================================
+
+Crate: prost
+Version: 0.14.3
+License: Apache-2.0
+Repository: https://github.com/tokio-rs/prost
+Authors: Dan Burkert <dan@danburkert.com>|Lucio Franco <luciofranco14@gmail.com>|Casper Meijn <casper@meijn.net>|Tokio Contributors <team@tokio.rs>
+
+Description:
+A Protocol Buffers implementation for the Rust Language.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/prost
+- The LICENSE or LICENSE-* files in the repository

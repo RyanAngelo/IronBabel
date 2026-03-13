@@ -1,0 +1,18 @@
+License Information for ppv-lite86 v0.2.21
+==================================================
+
+Crate: ppv-lite86
+Version: 0.2.21
+License: Apache-2.0 OR MIT
+Repository: https://github.com/cryptocorrosion/cryptocorrosion
+Authors: The CryptoCorrosion Contributors
+
+Description:
+Cross-platform cryptography-oriented low-level SIMD library.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ppv-lite86
+- The LICENSE or LICENSE-* files in the repository

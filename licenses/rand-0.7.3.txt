@@ -1,0 +1,18 @@
+License Information for rand v0.7.3
+==================================================
+
+Crate: rand
+Version: 0.7.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-random/rand
+Authors: The Rand Project Developers|The Rust Project Developers
+
+Description:
+Random number generators and other randomness functionality.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/rand
+- The LICENSE or LICENSE-* files in the repository

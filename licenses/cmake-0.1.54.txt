@@ -1,0 +1,18 @@
+License Information for cmake v0.1.54
+==================================================
+
+Crate: cmake
+Version: 0.1.54
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/cmake-rs
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+A build dependency for running `cmake` to build a native library
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/cmake
+- The LICENSE or LICENSE-* files in the repository

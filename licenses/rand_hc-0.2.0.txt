@@ -1,0 +1,18 @@
+License Information for rand_hc v0.2.0
+==================================================
+
+Crate: rand_hc
+Version: 0.2.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-random/rand
+Authors: The Rand Project Developers
+
+Description:
+HC128 random number generator
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/rand_hc
+- The LICENSE or LICENSE-* files in the repository

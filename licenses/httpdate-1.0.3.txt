@@ -1,0 +1,18 @@
+License Information for httpdate v1.0.3
+==================================================
+
+Crate: httpdate
+Version: 1.0.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/pyfisch/httpdate
+Authors: Pyfisch <pyfisch@posteo.org>
+
+Description:
+HTTP date parsing and formatting
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/httpdate
+- The LICENSE or LICENSE-* files in the repository

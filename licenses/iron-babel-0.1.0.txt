@@ -1,0 +1,18 @@
+License Information for iron-babel v0.1.0
+==================================================
+
+Crate: iron-babel
+Version: 0.1.0
+License: MIT
+Repository: NO-REPO
+Authors: Ryan Angelo <ryanangelo@icloud.com>
+
+Description:
+A cross-protocol API gateway for seamless service communication
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/iron-babel
+- The LICENSE or LICENSE-* files in the repository

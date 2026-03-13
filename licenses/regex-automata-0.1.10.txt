@@ -1,0 +1,18 @@
+License Information for regex-automata v0.1.10
+==================================================
+
+Crate: regex-automata
+Version: 0.1.10
+License: MIT OR Unlicense
+Repository: https://github.com/BurntSushi/regex-automata
+Authors: Andrew Gallant <jamslam@gmail.com>
+
+Description:
+Automata construction and matching using regular expressions.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/regex-automata
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for bitflags v1.3.2
+==================================================
+
+Crate: bitflags
+Version: 1.3.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/bitflags/bitflags
+Authors: The Rust Project Developers
+
+Description:
+A macro to generate structures which behave like bitflags.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/bitflags
+- The LICENSE or LICENSE-* files in the repository

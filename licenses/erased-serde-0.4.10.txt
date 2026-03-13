@@ -1,0 +1,18 @@
+License Information for erased-serde v0.4.10
+==================================================
+
+Crate: erased-serde
+Version: 0.4.10
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/erased-serde
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Type-erased Serialize and Serializer traits
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/erased-serde
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for static_assertions_next v1.1.2
+==================================================
+
+Crate: static_assertions_next
+Version: 1.1.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/scuffletv/static-assertions
+Authors: Nikolai Vazquez
+
+Description:
+Compile-time assertions to ensure that invariants are met.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/static_assertions_next
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for tokio-rustls v0.26.4
+==================================================
+
+Crate: tokio-rustls
+Version: 0.26.4
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustls/tokio-rustls
+Authors: N/A
+
+Description:
+Asynchronous TLS/SSL streams for Tokio using Rustls.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tokio-rustls
+- The LICENSE or LICENSE-* files in the repository

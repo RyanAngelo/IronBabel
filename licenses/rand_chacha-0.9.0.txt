@@ -1,0 +1,18 @@
+License Information for rand_chacha v0.9.0
+==================================================
+
+Crate: rand_chacha
+Version: 0.9.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-random/rand
+Authors: The Rand Project Developers|The Rust Project Developers|The CryptoCorrosion Contributors
+
+Description:
+ChaCha random number generator
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/rand_chacha
+- The LICENSE or LICENSE-* files in the repository

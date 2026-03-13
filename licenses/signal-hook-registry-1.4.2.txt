@@ -1,0 +1,18 @@
+License Information for signal-hook-registry v1.4.2
+==================================================
+
+Crate: signal-hook-registry
+Version: 1.4.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/vorner/signal-hook
+Authors: Michal 'vorner' Vaner <vorner@vorner.cz>|Masaki Hara <ackie.h.gmai@gmail.com>
+
+Description:
+Backend crate for signal-hook
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/signal-hook-registry
+- The LICENSE or LICENSE-* files in the repository

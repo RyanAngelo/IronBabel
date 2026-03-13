@@ -1,0 +1,18 @@
+License Information for equivalent v1.0.2
+==================================================
+
+Crate: equivalent
+Version: 1.0.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/indexmap-rs/equivalent
+Authors: N/A
+
+Description:
+Traits for key comparison in maps.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/equivalent
+- The LICENSE or LICENSE-* files in the repository

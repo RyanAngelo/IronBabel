@@ -1,0 +1,18 @@
+License Information for matchers v0.1.0
+==================================================
+
+Crate: matchers
+Version: 0.1.0
+License: MIT
+Repository: https://github.com/hawkw/matchers
+Authors: Eliza Weisman <eliza@buoyant.io>
+
+Description:
+Regex matching on character and byte streams.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/matchers
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for once_cell v1.21.1
+==================================================
+
+Crate: once_cell
+Version: 1.21.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/matklad/once_cell
+Authors: Aleksey Kladov <aleksey.kladov@gmail.com>
+
+Description:
+Single assignment cells and lazy values.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/once_cell
+- The LICENSE or LICENSE-* files in the repository

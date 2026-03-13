@@ -1,0 +1,18 @@
+License Information for slab v0.4.9
+==================================================
+
+Crate: slab
+Version: 0.4.9
+License: MIT
+Repository: https://github.com/tokio-rs/slab
+Authors: Carl Lerche <me@carllerche.com>
+
+Description:
+Pre-allocated storage for a uniform data type
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/slab
+- The LICENSE or LICENSE-* files in the repository

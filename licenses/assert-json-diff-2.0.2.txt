@@ -1,0 +1,18 @@
+License Information for assert-json-diff v2.0.2
+==================================================
+
+Crate: assert-json-diff
+Version: 2.0.2
+License: MIT
+Repository: https://github.com/davidpdrsn/assert-json-diff.git
+Authors: David Pedersen <david.pdrsn@gmail.com>
+
+Description:
+Easily compare two JSON values and get great output
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/assert-json-diff
+- The LICENSE or LICENSE-* files in the repository

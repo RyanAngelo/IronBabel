@@ -1,0 +1,18 @@
+License Information for web-sys v0.3.77
+==================================================
+
+Crate: web-sys
+Version: 0.3.77
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/web-sys
+Authors: The wasm-bindgen Developers
+
+Description:
+Bindings for all Web APIs, a procedurally generated crate from WebIDL
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/web-sys
+- The LICENSE or LICENSE-* files in the repository

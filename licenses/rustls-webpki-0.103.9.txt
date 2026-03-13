@@ -1,0 +1,18 @@
+License Information for rustls-webpki v0.103.9
+==================================================
+
+Crate: rustls-webpki
+Version: 0.103.9
+License: ISC
+Repository: https://github.com/rustls/webpki
+Authors: N/A
+
+Description:
+Web PKI X.509 Certificate Verification.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/rustls-webpki
+- The LICENSE or LICENSE-* files in the repository

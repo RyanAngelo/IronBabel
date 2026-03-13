@@ -1,0 +1,18 @@
+License Information for async-channel v1.9.0
+==================================================
+
+Crate: async-channel
+Version: 1.9.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/smol-rs/async-channel
+Authors: Stjepan Glavina <stjepang@gmail.com>
+
+Description:
+Async multi-producer multi-consumer channel
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/async-channel
+- The LICENSE or LICENSE-* files in the repository

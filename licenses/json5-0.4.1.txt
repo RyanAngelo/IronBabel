@@ -1,0 +1,18 @@
+License Information for json5 v0.4.1
+==================================================
+
+Crate: json5
+Version: 0.4.1
+License: ISC
+Repository: https://github.com/callum-oakley/json5-rs
+Authors: Callum Oakley <hello@callumoakley.net>
+
+Description:
+A Rust JSON5 serializer and deserializer which speaks Serde.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/json5
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for net2 v0.2.39
+==================================================
+
+Crate: net2
+Version: 0.2.39
+License: Apache-2.0 OR MIT
+Repository: https://github.com/deprecrated/net2-rs
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+Extensions to the standard library's networking types as proposed in RFC 1158.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/net2
+- The LICENSE or LICENSE-* files in the repository

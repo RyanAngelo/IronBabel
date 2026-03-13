@@ -1,0 +1,18 @@
+License Information for axum v0.8.8
+==================================================
+
+Crate: axum
+Version: 0.8.8
+License: MIT
+Repository: https://github.com/tokio-rs/axum
+Authors: N/A
+
+Description:
+Web framework that focuses on ergonomics and modularity
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/axum
+- The LICENSE or LICENSE-* files in the repository

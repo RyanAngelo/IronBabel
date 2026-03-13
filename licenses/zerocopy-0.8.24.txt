@@ -1,0 +1,18 @@
+License Information for zerocopy v0.8.24
+==================================================
+
+Crate: zerocopy
+Version: 0.8.24
+License: Apache-2.0 OR BSD-2-Clause OR MIT
+Repository: https://github.com/google/zerocopy
+Authors: Joshua Liebow-Feeser <joshlf@google.com>|Jack Wrenn <jswrenn@amazon.com>
+
+Description:
+Zerocopy makes zero-cost memory manipulation effortless. We write "unsafe" so you don't have to.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/zerocopy
+- The LICENSE or LICENSE-* files in the repository

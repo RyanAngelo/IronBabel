@@ -1,0 +1,18 @@
+License Information for windows-sys v0.61.2
+==================================================
+
+Crate: windows-sys
+Version: 0.61.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/microsoft/windows-rs
+Authors: N/A
+
+Description:
+Rust for Windows
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/windows-sys
+- The LICENSE or LICENSE-* files in the repository

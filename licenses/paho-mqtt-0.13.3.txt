@@ -1,0 +1,18 @@
+License Information for paho-mqtt v0.13.3
+==================================================
+
+Crate: paho-mqtt
+Version: 0.13.3
+License: EPL-2.0
+Repository: https://github.com/eclipse/paho.mqtt.rust
+Authors: Frank Pagliughi <fpagliughi@mindspring.com>
+
+Description:
+The Official Eclipse Paho MQTT Rust Client Library. This is a wrapper around the Paho C library.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/paho-mqtt
+- The LICENSE or LICENSE-* files in the repository

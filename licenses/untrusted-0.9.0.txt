@@ -1,0 +1,18 @@
+License Information for untrusted v0.9.0
+==================================================
+
+Crate: untrusted
+Version: 0.9.0
+License: ISC
+Repository: https://github.com/briansmith/untrusted
+Authors: Brian Smith <brian@briansmith.org>
+
+Description:
+Safe, fast, zero-panic, zero-crashing, zero-allocation parsing of untrusted inputs in Rust.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/untrusted
+- The LICENSE or LICENSE-* files in the repository

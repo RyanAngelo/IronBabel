@@ -1,0 +1,18 @@
+License Information for metrics-util v0.20.1
+==================================================
+
+Crate: metrics-util
+Version: 0.20.1
+License: MIT
+Repository: https://github.com/metrics-rs/metrics
+Authors: Toby Lawrence <toby@nuclearfurnace.com>
+
+Description:
+Helper types/functions used by the metrics ecosystem.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/metrics-util
+- The LICENSE or LICENSE-* files in the repository

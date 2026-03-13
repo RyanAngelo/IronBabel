@@ -1,0 +1,18 @@
+License Information for aws-lc-rs v1.16.1
+==================================================
+
+Crate: aws-lc-rs
+Version: 1.16.1
+License: (Apache-2.0 OR ISC) AND ISC
+Repository: https://github.com/aws/aws-lc-rs
+Authors: AWS-LibCrypto
+
+Description:
+aws-lc-rs is a cryptographic library using AWS-LC for its cryptographic operations. This library strives to be API-compatible with the popular Rust library named ring.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/aws-lc-rs
+- The LICENSE or LICENSE-* files in the repository

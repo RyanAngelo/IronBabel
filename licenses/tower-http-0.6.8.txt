@@ -1,0 +1,18 @@
+License Information for tower-http v0.6.8
+==================================================
+
+Crate: tower-http
+Version: 0.6.8
+License: MIT
+Repository: https://github.com/tower-rs/tower-http
+Authors: Tower Maintainers <team@tower-rs.com>
+
+Description:
+Tower middleware and utilities for HTTP clients and servers
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tower-http
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for h2 v0.4.13
+==================================================
+
+Crate: h2
+Version: 0.4.13
+License: MIT
+Repository: https://github.com/hyperium/h2
+Authors: Carl Lerche <me@carllerche.com>|Sean McArthur <sean@seanmonstar.com>
+
+Description:
+An HTTP/2 client and server
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/h2
+- The LICENSE or LICENSE-* files in the repository

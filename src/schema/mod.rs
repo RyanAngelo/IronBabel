@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
@@ -13,6 +14,7 @@ pub struct Schema {
     pub protocol: String,
 }
 
+#[async_trait]
 pub trait SchemaManager: Send + Sync {
     async fn discover_schema(&self, endpoint: &str) -> Result<Schema>;
     async fn generate_schema(&self, protocol: &str, content: &str) -> Result<Schema>;

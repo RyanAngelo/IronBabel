@@ -1,0 +1,18 @@
+License Information for ident_case v1.0.1
+==================================================
+
+Crate: ident_case
+Version: 1.0.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/TedDriggs/ident_case
+Authors: Ted Driggs <ted.driggs@outlook.com>
+
+Description:
+Utility for applying case rules to Rust identifiers.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ident_case
+- The LICENSE or LICENSE-* files in the repository

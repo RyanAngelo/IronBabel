@@ -1,0 +1,18 @@
+License Information for dunce v1.0.5
+==================================================
+
+Crate: dunce
+Version: 1.0.5
+License: Apache-2.0 OR CC0-1.0 OR MIT-0
+Repository: https://gitlab.com/kornelski/dunce
+Authors: Kornel <kornel@geekhood.net>
+
+Description:
+Normalize Windows paths to the most compatible format, avoiding UNC where possible
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/dunce
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for vcpkg v0.2.15
+==================================================
+
+Crate: vcpkg
+Version: 0.2.15
+License: Apache-2.0 OR MIT
+Repository: https://github.com/mcgoo/vcpkg-rs
+Authors: Jim McGrath <jimmc2@gmail.com>
+
+Description:
+A library to find native dependencies in a vcpkg tree at build time in order to be used in Cargo build scripts.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/vcpkg
+- The LICENSE or LICENSE-* files in the repository

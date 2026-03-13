@@ -1,0 +1,18 @@
+License Information for socket2 v0.6.3
+==================================================
+
+Crate: socket2
+Version: 0.6.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/socket2
+Authors: Alex Crichton <alex@alexcrichton.com>|Thomas de Zeeuw <thomasdezeeuw@gmail.com>
+
+Description:
+Utilities for handling networking sockets with a maximal amount of configuration possible intended.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/socket2
+- The LICENSE or LICENSE-* files in the repository

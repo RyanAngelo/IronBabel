@@ -1,0 +1,18 @@
+License Information for valuable v0.1.1
+==================================================
+
+Crate: valuable
+Version: 0.1.1
+License: MIT
+Repository: https://github.com/tokio-rs/valuable
+Authors: N/A
+
+Description:
+Object-safe value inspection, used to pass un-typed structured data across trait-object boundaries.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/valuable
+- The LICENSE or LICENSE-* files in the repository

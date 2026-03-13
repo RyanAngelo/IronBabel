@@ -1,0 +1,18 @@
+License Information for mio v0.6.23
+==================================================
+
+Crate: mio
+Version: 0.6.23
+License: MIT
+Repository: https://github.com/tokio-rs/mio
+Authors: Carl Lerche <me@carllerche.com>
+
+Description:
+Lightweight non-blocking IO
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/mio
+- The LICENSE or LICENSE-* files in the repository

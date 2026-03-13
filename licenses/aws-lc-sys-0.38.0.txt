@@ -1,0 +1,18 @@
+License Information for aws-lc-sys v0.38.0
+==================================================
+
+Crate: aws-lc-sys
+Version: 0.38.0
+License: (Apache-2.0 OR ISC) AND ISC AND OpenSSL
+Repository: https://github.com/aws/aws-lc-rs
+Authors: AWS-LC
+
+Description:
+AWS-LC is a general-purpose cryptographic library maintained by the AWS Cryptography team for AWS and their customers. It іs based on code from the Google BoringSSL project and the OpenSSL project.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/aws-lc-sys
+- The LICENSE or LICENSE-* files in the repository

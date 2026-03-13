@@ -1,0 +1,18 @@
+License Information for httparse v1.10.1
+==================================================
+
+Crate: httparse
+Version: 1.10.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/seanmonstar/httparse
+Authors: Sean McArthur <sean@seanmonstar.com>
+
+Description:
+A tiny, safe, speedy, zero-copy HTTP/1.x parser.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/httparse
+- The LICENSE or LICENSE-* files in the repository

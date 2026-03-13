@@ -1,0 +1,18 @@
+License Information for hyper-timeout v0.5.2
+==================================================
+
+Crate: hyper-timeout
+Version: 0.5.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/hjr3/hyper-timeout
+Authors: Herman J. Radtke III <herman@hermanradtke.com>
+
+Description:
+A connect, read and write timeout aware connector to be used with hyper Client.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/hyper-timeout
+- The LICENSE or LICENSE-* files in the repository

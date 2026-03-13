@@ -1,0 +1,18 @@
+License Information for itoa v1.0.15
+==================================================
+
+Crate: itoa
+Version: 1.0.15
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/itoa
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Fast integer primitive to string conversion
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/itoa
+- The LICENSE or LICENSE-* files in the repository

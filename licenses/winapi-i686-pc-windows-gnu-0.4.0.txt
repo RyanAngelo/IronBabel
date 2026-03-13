@@ -1,0 +1,18 @@
+License Information for winapi-i686-pc-windows-gnu v0.4.0
+==================================================
+
+Crate: winapi-i686-pc-windows-gnu
+Version: 0.4.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/retep998/winapi-rs
+Authors: Peter Atashian <retep998@gmail.com>
+
+Description:
+Import libraries for the i686-pc-windows-gnu target. Please don't use this crate directly, depend on winapi instead.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/winapi-i686-pc-windows-gnu
+- The LICENSE or LICENSE-* files in the repository

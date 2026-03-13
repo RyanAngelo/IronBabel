@@ -1,0 +1,18 @@
+License Information for fuchsia-zircon v0.3.3
+==================================================
+
+Crate: fuchsia-zircon
+Version: 0.3.3
+License: BSD-3-Clause
+Repository: https://fuchsia.googlesource.com/garnet/
+Authors: Raph Levien <raph@google.com>
+
+Description:
+Rust bindings for the Zircon kernel
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/fuchsia-zircon
+- The LICENSE or LICENSE-* files in the repository

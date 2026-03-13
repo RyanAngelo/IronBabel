@@ -1,0 +1,24 @@
+(Apache-2.0 OR ISC) AND ISC (1): aws-lc-rs
+(Apache-2.0 OR ISC) AND ISC AND OpenSSL (1): aws-lc-sys
+(Apache-2.0 OR MIT) AND BSD-3-Clause (1): encoding_rs
+(Apache-2.0 OR MIT) AND Unicode-3.0 (1): unicode-ident
+Apache-2.0 (6): num-modular, num-order, prost, prost-derive, sketches-ddsketch, sync_wrapper
+Apache-2.0 AND ISC (1): ring
+Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT (6): linux-raw-sys, rustix, wasi, wasi, wasi, wit-bindgen-rt
+Apache-2.0 OR BSD-2-Clause OR MIT (4): zerocopy, zerocopy, zerocopy-derive, zerocopy-derive
+Apache-2.0 OR BSL-1.0 (1): ryu
+Apache-2.0 OR CC0-1.0 OR MIT-0 (1): dunce
+Apache-2.0 OR ISC OR MIT (3): hyper-rustls, rustls, rustls-native-certs
+Apache-2.0 OR LGPL-2.1-or-later OR MIT (1): r-efi
+Apache-2.0 OR MIT (205): ahash, anyhow, arraydeque, async-channel, async-graphql, async-graphql-derive, async-graphql-parser, async-graphql-value, async-io, async-trait, asynk-strim, atomic-waker, autocfg, base64, bitflags, bitflags, block-buffer, block-buffer, block-padding, bumpalo, byte-tools, cc, cfg-if, cfg-if, cmake, concurrent-queue, config, const-random, const-random-macro, core-foundation, core-foundation-sys, cpufeatures, crossbeam-channel, crossbeam-epoch, crossbeam-utils, crypto-common, deadpool, deadpool-runtime, derive_builder, derive_builder_core, derive_builder_macro, digest, digest, displaydoc, dlv-list, either, equivalent, erased-serde, errno, event-listener, fake-simd, fastrand, find-msvc-tools, fnv, form_urlencoded, futures, futures-channel, futures-core, futures-executor, futures-io, futures-lite, futures-macro, futures-sink, futures-task, futures-timer, futures-util, getrandom, getrandom, getrandom, hashbrown, hashbrown, hashbrown, hashlink, heck, hermit-abi, hermit-abi, http, httparse, httpdate, hyper-timeout, ident_case, idna, idna_adapter, indexmap, iovec, ipnet, itertools, itoa, jobserver, js-sys, lazy_static, lazycell, libc, log, mime, mio-extras, miow, net2, num-traits, num_cpus, once_cell, opaque-debug, openssl-probe, parking, pathdiff, percent-encoding, pest, pest_derive, pest_generator, pest_meta, pin-project, pin-project-internal, pin-project-lite, pin-utils, pkg-config, polling, portable-atomic, ppv-lite86, prettyplease, proc-macro-crate, proc-macro2, quote, rand, rand, rand_chacha, rand_chacha, rand_core, rand_core, rand_hc, rand_xoshiro, regex, regex-automata, regex-syntax, regex-syntax, ron, rustls-pki-types, security-framework, security-framework-sys, serde, serde-untagged, serde_core, serde_derive, serde_json, serde_path_to_error, serde_spanned, serde_urlencoded, serde_yaml, sha-1, sha2, shlex, signal-hook-registry, smallvec, socket2, stable_deref_trait, static_assertions_next, syn, tempfile, thiserror, thiserror, thiserror-impl, thiserror-impl, thread_local, tokio-rustls, toml, toml, toml_datetime, toml_datetime, toml_edit, toml_parser, toml_writer, typeid, typenum, ucd-trie, unicode-segmentation, url, utf16_iter, utf8_iter, vcpkg, version_check, wasm-bindgen, wasm-bindgen-backend, wasm-bindgen-macro, wasm-bindgen-macro-support, wasm-bindgen-shared, web-sys, winapi, winapi-i686-pc-windows-gnu, winapi-x86_64-pc-windows-gnu, windows-link, windows-sys, windows-sys, windows-sys, windows-targets, windows_aarch64_gnullvm, windows_aarch64_msvc, windows_i686_gnu, windows_i686_gnullvm, windows_i686_msvc, windows_x86_64_gnu, windows_x86_64_gnullvm, windows_x86_64_msvc, wiremock, write16, yaml-rust2, zeroize
+BSD-2-Clause (1): Inflector
+BSD-3-Clause (3): fuchsia-zircon, fuchsia-zircon-sys, subtle
+BSD-3-Clause AND MIT (1): matchit
+CC0-1.0 (1): tiny-keccak
+EPL-2.0 (2): paho-mqtt, paho-mqtt-sys
+ISC (3): json5, rustls-webpki, untrusted
+MIT (74): assert-json-diff, async-stream, async-stream-impl, axum, axum-core, bytes, bytes, convert_case, crunchy, darling, darling, darling_core, darling_core, darling_macro, darling_macro, fs_extra, generic-array, generic-array, h2, handlebars, http-body, http-body-util, hyper, hyper-util, iron-babel, kernel32-sys, matchers, metrics, metrics-exporter-prometheus, metrics-util, mio, mio, multer, nu-ansi-term, openssl-sys, ordered-multimap, overload, quanta, raw-cpuid, rust-ini, schannel, sharded-slab, slab, spin, strsim, strum, strum_macros, synstructure, tokio, tokio-macros, tokio-stream, tokio-test, tokio-util, tonic, tonic-build, tower, tower-http, tower-layer, tower-service, tracing, tracing-attributes, tracing-core, tracing-log, tracing-subscriber, try-lock, unsafe-libyaml, valuable, want, winapi, winapi-build, winnow, ws, ws2_32-sys, zmij
+MIT OR Unlicense (4): aho-corasick, byteorder, memchr, regex-automata
+MPL-2.0 (2): ascii_utils, fast_chemail
+Unicode-3.0 (19): icu_collections, icu_locid, icu_locid_transform, icu_locid_transform_data, icu_normalizer, icu_normalizer_data, icu_properties, icu_properties_data, icu_provider, icu_provider_macros, litemap, tinystr, writeable, yoke, yoke-derive, zerofrom, zerofrom-derive, zerovec, zerovec-derive
+Zlib (2): foldhash, foldhash

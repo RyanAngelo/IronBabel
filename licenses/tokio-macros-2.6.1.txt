@@ -1,0 +1,18 @@
+License Information for tokio-macros v2.6.1
+==================================================
+
+Crate: tokio-macros
+Version: 2.6.1
+License: MIT
+Repository: https://github.com/tokio-rs/tokio
+Authors: Tokio Contributors <team@tokio.rs>
+
+Description:
+Tokio's proc macros.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tokio-macros
+- The LICENSE or LICENSE-* files in the repository

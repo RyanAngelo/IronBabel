@@ -1,0 +1,18 @@
+License Information for kernel32-sys v0.2.2
+==================================================
+
+Crate: kernel32-sys
+Version: 0.2.2
+License: MIT
+Repository: https://github.com/retep998/winapi-rs
+Authors: Peter Atashian <retep998@gmail.com>
+
+Description:
+Contains function definitions for the Windows API library kernel32. See winapi for types and constants.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/kernel32-sys
+- The LICENSE or LICENSE-* files in the repository

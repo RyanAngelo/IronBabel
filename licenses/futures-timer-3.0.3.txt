@@ -1,0 +1,18 @@
+License Information for futures-timer v3.0.3
+==================================================
+
+Crate: futures-timer
+Version: 3.0.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/async-rs/futures-timer
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+Timeouts for futures.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/futures-timer
+- The LICENSE or LICENSE-* files in the repository

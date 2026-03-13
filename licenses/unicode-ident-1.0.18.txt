@@ -1,0 +1,18 @@
+License Information for unicode-ident v1.0.18
+==================================================
+
+Crate: unicode-ident
+Version: 1.0.18
+License: (Apache-2.0 OR MIT) AND Unicode-3.0
+Repository: https://github.com/dtolnay/unicode-ident
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Determine whether characters have the XID_Start or XID_Continue properties according to Unicode Standard Annex #31
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/unicode-ident
+- The LICENSE or LICENSE-* files in the repository

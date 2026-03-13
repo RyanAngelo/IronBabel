@@ -1,0 +1,18 @@
+License Information for pathdiff v0.2.3
+==================================================
+
+Crate: pathdiff
+Version: 0.2.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/Manishearth/pathdiff
+Authors: Manish Goregaokar <manishsmail@gmail.com>
+
+Description:
+Library for diffing paths to obtain relative paths
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/pathdiff
+- The LICENSE or LICENSE-* files in the repository

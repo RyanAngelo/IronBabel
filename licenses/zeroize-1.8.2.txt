@@ -1,0 +1,18 @@
+License Information for zeroize v1.8.2
+==================================================
+
+Crate: zeroize
+Version: 1.8.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/RustCrypto/utils
+Authors: The RustCrypto Project Developers
+
+Description:
+Securely clear secrets from memory with a simple trait built on stable Rust primitives which guarantee memory is zeroed using an operation will not be 'optimized away' by the compiler. Uses a portable pure Rust implementation that works everywhere, even WASM!
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/zeroize
+- The LICENSE or LICENSE-* files in the repository

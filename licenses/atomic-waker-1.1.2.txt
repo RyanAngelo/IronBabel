@@ -1,0 +1,18 @@
+License Information for atomic-waker v1.1.2
+==================================================
+
+Crate: atomic-waker
+Version: 1.1.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/smol-rs/atomic-waker
+Authors: Stjepan Glavina <stjepang@gmail.com>|Contributors to futures-rs
+
+Description:
+A synchronization primitive for task wakeup
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/atomic-waker
+- The LICENSE or LICENSE-* files in the repository

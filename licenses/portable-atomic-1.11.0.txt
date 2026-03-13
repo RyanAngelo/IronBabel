@@ -1,0 +1,18 @@
+License Information for portable-atomic v1.11.0
+==================================================
+
+Crate: portable-atomic
+Version: 1.11.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/taiki-e/portable-atomic
+Authors: N/A
+
+Description:
+Portable atomic types including support for 128-bit atomics, atomic float, etc.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/portable-atomic
+- The LICENSE or LICENSE-* files in the repository

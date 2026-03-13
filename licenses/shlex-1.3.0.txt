@@ -1,0 +1,18 @@
+License Information for shlex v1.3.0
+==================================================
+
+Crate: shlex
+Version: 1.3.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/comex/rust-shlex
+Authors: comex <comexk@gmail.com>|Fenhl <fenhl@fenhl.net>|Adrian Taylor <adetaylor@chromium.org>|Alex Touchet <alextouchet@outlook.com>|Daniel Parks <dp+git@oxidized.org>|Garrett Berg <googberg@gmail.com>
+
+Description:
+Split a string into shell words, like Python's shlex.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/shlex
+- The LICENSE or LICENSE-* files in the repository

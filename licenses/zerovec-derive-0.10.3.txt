@@ -1,0 +1,18 @@
+License Information for zerovec-derive v0.10.3
+==================================================
+
+Crate: zerovec-derive
+Version: 0.10.3
+License: Unicode-3.0
+Repository: https://github.com/unicode-org/icu4x
+Authors: Manish Goregaokar <manishsmail@gmail.com>
+
+Description:
+Custom derive for the zerovec crate
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/zerovec-derive
+- The LICENSE or LICENSE-* files in the repository

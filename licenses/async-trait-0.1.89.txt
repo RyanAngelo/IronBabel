@@ -1,0 +1,18 @@
+License Information for async-trait v0.1.89
+==================================================
+
+Crate: async-trait
+Version: 0.1.89
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/async-trait
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Type erasure for async trait methods
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/async-trait
+- The LICENSE or LICENSE-* files in the repository

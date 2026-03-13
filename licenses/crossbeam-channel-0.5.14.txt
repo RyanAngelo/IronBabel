@@ -1,0 +1,18 @@
+License Information for crossbeam-channel v0.5.14
+==================================================
+
+Crate: crossbeam-channel
+Version: 0.5.14
+License: Apache-2.0 OR MIT
+Repository: https://github.com/crossbeam-rs/crossbeam
+Authors: N/A
+
+Description:
+Multi-producer multi-consumer channels for message passing
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/crossbeam-channel
+- The LICENSE or LICENSE-* files in the repository

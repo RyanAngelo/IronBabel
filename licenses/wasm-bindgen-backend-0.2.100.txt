@@ -1,0 +1,18 @@
+License Information for wasm-bindgen-backend v0.2.100
+==================================================
+
+Crate: wasm-bindgen-backend
+Version: 0.2.100
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/backend
+Authors: The wasm-bindgen Developers
+
+Description:
+Backend code generation of the wasm-bindgen tool
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/wasm-bindgen-backend
+- The LICENSE or LICENSE-* files in the repository

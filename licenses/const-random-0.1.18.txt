@@ -1,0 +1,18 @@
+License Information for const-random v0.1.18
+==================================================
+
+Crate: const-random
+Version: 0.1.18
+License: Apache-2.0 OR MIT
+Repository: https://github.com/tkaitchuck/constrandom
+Authors: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
+
+Description:
+Provides compile time random number generation.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/const-random
+- The LICENSE or LICENSE-* files in the repository

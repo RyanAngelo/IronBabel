@@ -1,0 +1,18 @@
+License Information for futures-channel v0.3.31
+==================================================
+
+Crate: futures-channel
+Version: 0.3.31
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/futures-rs
+Authors: N/A
+
+Description:
+Channels for asynchronous communication using futures-rs.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/futures-channel
+- The LICENSE or LICENSE-* files in the repository

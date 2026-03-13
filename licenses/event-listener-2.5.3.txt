@@ -1,0 +1,18 @@
+License Information for event-listener v2.5.3
+==================================================
+
+Crate: event-listener
+Version: 2.5.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/smol-rs/event-listener
+Authors: Stjepan Glavina <stjepang@gmail.com>
+
+Description:
+Notify async tasks or threads
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/event-listener
+- The LICENSE or LICENSE-* files in the repository

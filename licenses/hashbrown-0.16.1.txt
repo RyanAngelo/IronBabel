@@ -1,0 +1,18 @@
+License Information for hashbrown v0.16.1
+==================================================
+
+Crate: hashbrown
+Version: 0.16.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/hashbrown
+Authors: Amanieu d'Antras <amanieu@gmail.com>
+
+Description:
+A Rust port of Google's SwissTable hash map
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/hashbrown
+- The LICENSE or LICENSE-* files in the repository

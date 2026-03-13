@@ -1,0 +1,18 @@
+License Information for winapi v0.3.9
+==================================================
+
+Crate: winapi
+Version: 0.3.9
+License: Apache-2.0 OR MIT
+Repository: https://github.com/retep998/winapi-rs
+Authors: Peter Atashian <retep998@gmail.com>
+
+Description:
+Raw FFI bindings for all of Windows API.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/winapi
+- The LICENSE or LICENSE-* files in the repository

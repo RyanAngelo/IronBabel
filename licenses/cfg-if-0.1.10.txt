@@ -1,0 +1,18 @@
+License Information for cfg-if v0.1.10
+==================================================
+
+Crate: cfg-if
+Version: 0.1.10
+License: Apache-2.0 OR MIT
+Repository: https://github.com/alexcrichton/cfg-if
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+A macro to ergonomically define an item depending on a large number of #[cfg] parameters. Structured like an if-else chain, the first matching branch is the item that gets emitted.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/cfg-if
+- The LICENSE or LICENSE-* files in the repository

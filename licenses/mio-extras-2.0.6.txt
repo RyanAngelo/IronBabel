@@ -1,0 +1,18 @@
+License Information for mio-extras v2.0.6
+==================================================
+
+Crate: mio-extras
+Version: 2.0.6
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dimbleby/mio-extras
+Authors: Carl Lerche <me@carllerche.com>|David Hotham
+
+Description:
+Extra components for use with Mio
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/mio-extras
+- The LICENSE or LICENSE-* files in the repository

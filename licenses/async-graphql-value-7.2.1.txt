@@ -1,0 +1,18 @@
+License Information for async-graphql-value v7.2.1
+==================================================
+
+Crate: async-graphql-value
+Version: 7.2.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/async-graphql/async-graphql
+Authors: sunli <scott_s829@163.com>|Koxiaet
+
+Description:
+GraphQL value for async-graphql
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/async-graphql-value
+- The LICENSE or LICENSE-* files in the repository

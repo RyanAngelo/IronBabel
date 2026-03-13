@@ -1,0 +1,18 @@
+License Information for foldhash v0.2.0
+==================================================
+
+Crate: foldhash
+Version: 0.2.0
+License: Zlib
+Repository: https://github.com/orlp/foldhash
+Authors: Orson Peters <orsonpeters@gmail.com>
+
+Description:
+A fast, non-cryptographic, minimally DoS-resistant hashing algorithm.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/foldhash
+- The LICENSE or LICENSE-* files in the repository

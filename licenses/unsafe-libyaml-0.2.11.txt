@@ -1,0 +1,18 @@
+License Information for unsafe-libyaml v0.2.11
+==================================================
+
+Crate: unsafe-libyaml
+Version: 0.2.11
+License: MIT
+Repository: https://github.com/dtolnay/unsafe-libyaml
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+libyaml transpiled to rust by c2rust
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/unsafe-libyaml
+- The LICENSE or LICENSE-* files in the repository

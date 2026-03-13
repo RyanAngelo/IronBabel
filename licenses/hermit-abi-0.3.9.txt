@@ -1,0 +1,18 @@
+License Information for hermit-abi v0.3.9
+==================================================
+
+Crate: hermit-abi
+Version: 0.3.9
+License: Apache-2.0 OR MIT
+Repository: https://github.com/hermit-os/hermit-rs
+Authors: Stefan Lankes
+
+Description:
+Hermit system calls definitions.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/hermit-abi
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for indexmap v2.13.0
+==================================================
+
+Crate: indexmap
+Version: 2.13.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/indexmap-rs/indexmap
+Authors: N/A
+
+Description:
+A hash table with consistent order and fast iteration.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/indexmap
+- The LICENSE or LICENSE-* files in the repository

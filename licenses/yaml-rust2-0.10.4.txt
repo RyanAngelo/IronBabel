@@ -1,0 +1,18 @@
+License Information for yaml-rust2 v0.10.4
+==================================================
+
+Crate: yaml-rust2
+Version: 0.10.4
+License: Apache-2.0 OR MIT
+Repository: https://github.com/Ethiraric/yaml-rust2
+Authors: Yuheng Chen <yuhengchen@sensetime.com>|Ethiraric <ethiraric@gmail.com>|David Aguilar <davvid@gmail.com>
+
+Description:
+A fully YAML 1.2 compliant YAML parser
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/yaml-rust2
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for windows_x86_64_gnullvm v0.52.6
+==================================================
+
+Crate: windows_x86_64_gnullvm
+Version: 0.52.6
+License: Apache-2.0 OR MIT
+Repository: https://github.com/microsoft/windows-rs
+Authors: Microsoft
+
+Description:
+Import lib for Windows
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/windows_x86_64_gnullvm
+- The LICENSE or LICENSE-* files in the repository

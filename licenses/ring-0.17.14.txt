@@ -1,0 +1,18 @@
+License Information for ring v0.17.14
+==================================================
+
+Crate: ring
+Version: 0.17.14
+License: Apache-2.0 AND ISC
+Repository: https://github.com/briansmith/ring
+Authors: N/A
+
+Description:
+An experiment.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ring
+- The LICENSE or LICENSE-* files in the repository

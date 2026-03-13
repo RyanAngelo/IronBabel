@@ -1,0 +1,18 @@
+License Information for tower v0.5.3
+==================================================
+
+Crate: tower
+Version: 0.5.3
+License: MIT
+Repository: https://github.com/tower-rs/tower
+Authors: Tower Maintainers <team@tower-rs.com>
+
+Description:
+Tower is a library of modular and reusable components for building robust clients and servers.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tower
+- The LICENSE or LICENSE-* files in the repository

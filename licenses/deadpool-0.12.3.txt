@@ -1,0 +1,18 @@
+License Information for deadpool v0.12.3
+==================================================
+
+Crate: deadpool
+Version: 0.12.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/bikeshedder/deadpool
+Authors: Michael P. Jung <michael.jung@terreon.de>
+
+Description:
+Dead simple async pool
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/deadpool
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for nu-ansi-term v0.46.0
+==================================================
+
+Crate: nu-ansi-term
+Version: 0.46.0
+License: MIT
+Repository: https://github.com/nushell/nu-ansi-term
+Authors: ogham@bsago.me|Ryan Scheel (Havvy) <ryan.havvy@gmail.com>|Josh Triplett <josh@joshtriplett.org>|The Nushell Project Developers
+
+Description:
+Library for ANSI terminal colors and styles (bold, underline)
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/nu-ansi-term
+- The LICENSE or LICENSE-* files in the repository

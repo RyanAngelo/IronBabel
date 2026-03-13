@@ -1,0 +1,18 @@
+License Information for serde-untagged v0.1.9
+==================================================
+
+Crate: serde-untagged
+Version: 0.1.9
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/serde-untagged
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Serde `Visitor` implementation for deserializing untagged enums
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/serde-untagged
+- The LICENSE or LICENSE-* files in the repository

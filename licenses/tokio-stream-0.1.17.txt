@@ -1,0 +1,18 @@
+License Information for tokio-stream v0.1.17
+==================================================
+
+Crate: tokio-stream
+Version: 0.1.17
+License: MIT
+Repository: https://github.com/tokio-rs/tokio
+Authors: Tokio Contributors <team@tokio.rs>
+
+Description:
+Utilities to work with `Stream` and `tokio`.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tokio-stream
+- The LICENSE or LICENSE-* files in the repository

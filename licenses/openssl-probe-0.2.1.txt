@@ -1,0 +1,18 @@
+License Information for openssl-probe v0.2.1
+==================================================
+
+Crate: openssl-probe
+Version: 0.2.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustls/openssl-probe
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+A library for helping to find system-wide trust anchor ("root") certificate locations based on paths typically used by `openssl`.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/openssl-probe
+- The LICENSE or LICENSE-* files in the repository

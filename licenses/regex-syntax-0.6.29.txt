@@ -1,0 +1,18 @@
+License Information for regex-syntax v0.6.29
+==================================================
+
+Crate: regex-syntax
+Version: 0.6.29
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/regex
+Authors: The Rust Project Developers
+
+Description:
+A regular expression parser.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/regex-syntax
+- The LICENSE or LICENSE-* files in the repository

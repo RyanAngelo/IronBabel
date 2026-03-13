@@ -1,0 +1,18 @@
+License Information for sync_wrapper v1.0.2
+==================================================
+
+Crate: sync_wrapper
+Version: 1.0.2
+License: Apache-2.0
+Repository: https://github.com/Actyx/sync_wrapper
+Authors: Actyx AG <developer@actyx.io>
+
+Description:
+A tool for enlisting the compiler's help in proving the absence of concurrency
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/sync_wrapper
+- The LICENSE or LICENSE-* files in the repository

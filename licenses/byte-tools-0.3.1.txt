@@ -1,0 +1,18 @@
+License Information for byte-tools v0.3.1
+==================================================
+
+Crate: byte-tools
+Version: 0.3.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/RustCrypto/utils
+Authors: RustCrypto Developers
+
+Description:
+Bytes related utility functions
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/byte-tools
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for synstructure v0.13.1
+==================================================
+
+Crate: synstructure
+Version: 0.13.1
+License: MIT
+Repository: https://github.com/mystor/synstructure
+Authors: Nika Layzell <nika@thelayzells.com>
+
+Description:
+Helper methods and macros for custom derives
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/synstructure
+- The LICENSE or LICENSE-* files in the repository

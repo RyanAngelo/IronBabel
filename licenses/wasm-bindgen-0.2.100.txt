@@ -1,0 +1,18 @@
+License Information for wasm-bindgen v0.2.100
+==================================================
+
+Crate: wasm-bindgen
+Version: 0.2.100
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustwasm/wasm-bindgen
+Authors: The wasm-bindgen Developers
+
+Description:
+Easy support for interacting between JS and Rust.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/wasm-bindgen
+- The LICENSE or LICENSE-* files in the repository

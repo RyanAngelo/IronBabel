@@ -1,0 +1,18 @@
+License Information for pin-project v1.1.10
+==================================================
+
+Crate: pin-project
+Version: 1.1.10
+License: Apache-2.0 OR MIT
+Repository: https://github.com/taiki-e/pin-project
+Authors: N/A
+
+Description:
+A crate for safe and ergonomic pin-projection.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/pin-project
+- The LICENSE or LICENSE-* files in the repository

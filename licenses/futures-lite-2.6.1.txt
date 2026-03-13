@@ -1,0 +1,18 @@
+License Information for futures-lite v2.6.1
+==================================================
+
+Crate: futures-lite
+Version: 2.6.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/smol-rs/futures-lite
+Authors: Stjepan Glavina <stjepang@gmail.com>|Contributors to futures-rs
+
+Description:
+Futures, streams, and async I/O combinators
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/futures-lite
+- The LICENSE or LICENSE-* files in the repository
