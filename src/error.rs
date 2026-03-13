@@ -41,6 +41,12 @@ pub enum Error {
     #[error("GraphQL error: {0}")]
     GraphQL(String),
 
+    #[error("Unauthorized: {0}")]
+    Unauthorized(String),
+
+    #[error("Rate limited")]
+    RateLimited,
+
     #[error("Unknown error: {0}")]
     Unknown(String),
 } 

@@ -44,11 +44,9 @@ impl HttpGateway {
             ));
         }
 
-        // Path traversal guard: reject any path containing ".." segments
-        for segment in path.split('/') {
-            if segment == ".." {
-                return Err(Error::Protocol("invalid path".to_string()));
-            }
+        // Path traversal guard: reject raw and percent-encoded ".." segments.
+        if crate::protocols::http::path_contains_traversal(path) {
+            return Err(Error::Protocol("invalid path".to_string()));
         }
 
         // Build target URL
@@ -181,6 +179,24 @@ mod tests {
             .await
             .unwrap_err();
         assert!(err.to_string().contains("http://") || err.to_string().contains("https://"));
+    }
+
+    #[tokio::test]
+    async fn rejects_percent_encoded_path_traversal() {
+        let gw = gateway();
+        let err = gw
+            .proxy(
+                reqwest::Method::GET,
+                "http://127.0.0.1:9000",
+                "/%2e%2e/etc/passwd",
+                None,
+                &[],
+                vec![],
+                5,
+            )
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("invalid path"));
     }
 
     #[tokio::test]

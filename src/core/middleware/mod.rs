@@ -6,10 +6,9 @@ pub use auth::AuthMiddleware;
 pub use rate_limit::RateLimitMiddleware;
 pub use logging::LoggingMiddleware;
 
+use std::sync::Arc;
 use crate::core::{Request, Response, MiddlewareConfig};
 use crate::error::Result;
-
-pub mod metrics;
 
 #[async_trait::async_trait]
 pub trait Middleware: Send + Sync {
@@ -18,6 +17,7 @@ pub trait Middleware: Send + Sync {
     fn config(&self) -> &MiddlewareConfig;
 }
 
+#[derive(Clone)]
 pub struct MiddlewareChain {
     middlewares: Vec<Arc<dyn Middleware>>,
 }
@@ -46,4 +46,4 @@ impl MiddlewareChain {
         }
         Ok(response)
     }
-} 
+}

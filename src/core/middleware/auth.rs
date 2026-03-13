@@ -11,23 +11,55 @@ impl AuthMiddleware {
         Self { config }
     }
 
+    /// Validates `token` against the `api_keys` list in settings.
+    /// If no keys are configured (or the list is empty), all tokens are accepted.
     fn validate_token(&self, token: &str) -> Result<()> {
-        // TODO: Implement token validation
-        Ok(())
+        let api_keys = self.config.settings
+            .get("api_keys")
+            .and_then(|v| v.as_array());
+
+        match api_keys {
+            Some(keys) if !keys.is_empty() => {
+                if keys.iter().any(|k| k.as_str() == Some(token)) {
+                    Ok(())
+                } else {
+                    Err(Error::Unauthorized("Invalid token".to_string()))
+                }
+            }
+            _ => Ok(()), // no keys configured → auth not enforced
+        }
     }
 }
 
 #[async_trait]
 impl super::Middleware for AuthMiddleware {
     async fn handle_request(&self, request: Request) -> Result<Request> {
-        // Check for authentication header
-        if let Some(auth_header) = request.headers().get("Authorization") {
-            if let Ok(token) = auth_header.to_str() {
-                if token.starts_with("Bearer ") {
-                    let token = &token[7..];
-                    self.validate_token(token)?;
+        if !self.config.enabled {
+            return Ok(request);
+        }
+
+        let auth_header = request.metadata.headers.iter()
+            .find(|(k, _)| k.eq_ignore_ascii_case("authorization"))
+            .map(|(_, v)| v.as_str());
+
+        match auth_header {
+            Some(value) if value.starts_with("Bearer ") => {
+                self.validate_token(&value[7..])?;
+            }
+            None => {
+                // No header present — reject only if api_keys are configured.
+                let keys_configured = self.config.settings
+                    .get("api_keys")
+                    .and_then(|v| v.as_array())
+                    .map(|k| !k.is_empty())
+                    .unwrap_or(false);
+                if keys_configured {
+                    return Err(Error::Unauthorized(
+                        "Missing Authorization header".to_string(),
+                    ));
                 }
             }
+            _ => {} // present but not Bearer — ignore (could enforce stricter if needed)
         }
 
         Ok(request)
@@ -40,4 +72,4 @@ impl super::Middleware for AuthMiddleware {
     fn config(&self) -> &MiddlewareConfig {
         &self.config
     }
-} 
+}

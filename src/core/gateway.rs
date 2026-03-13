@@ -14,6 +14,8 @@ use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use crate::{error::Result, protocols::Protocol};
 use crate::protocols::{http::HttpProtocol, grpc::GrpcProtocol, graphql::GraphQLProtocol, mqtt::MqttProtocol, ws::WebSocketProtocol};
+use crate::core::middleware::{MiddlewareChain, LoggingMiddleware};
+use crate::core::types::{MiddlewareConfig, RequestMetadata, ResponseMetadata};
 use super::Gateway;
 
 // ---------------------------------------------------------------------------
@@ -24,6 +26,7 @@ use super::Gateway;
 struct AppState {
     router: Arc<crate::core::Router>,
     http_gateway: Arc<crate::gateway::http::HttpGateway>,
+    middleware: Arc<MiddlewareChain>,
 }
 
 // ---------------------------------------------------------------------------
@@ -38,8 +41,8 @@ async fn handle_request(
     let path = req.uri().path().to_string();
     let query = req.uri().query().map(|q| q.to_string());
 
-    // Security: reject path traversal attempts.
-    if path.contains("..") {
+    // Security: reject path traversal attempts (raw and percent-encoded).
+    if crate::protocols::http::path_contains_traversal(&path) {
         return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
     }
 
@@ -69,7 +72,38 @@ async fn handle_request(
         Err(_) => return (StatusCode::METHOD_NOT_ALLOWED, "Invalid method").into_response(),
     };
 
-    let timeout = route.timeout_secs.unwrap_or(30);
+    let timeout_secs = route.timeout_secs.unwrap_or(30);
+
+    // Build the internal request and run it through the middleware chain
+    // (auth, rate limiting, logging, etc.).
+    let core_req = crate::core::Request {
+        data: body_bytes,
+        metadata: RequestMetadata {
+            protocol: "http".to_string(),
+            method: Some(method_str),
+            path: Some(path.clone()),
+            headers,
+            timeout: Some(Duration::from_secs(timeout_secs)),
+        },
+    };
+
+    let core_req = match state.middleware.handle_request(core_req).await {
+        Ok(r) => r,
+        Err(crate::error::Error::Unauthorized(msg)) => {
+            return (StatusCode::UNAUTHORIZED, msg).into_response();
+        }
+        Err(crate::error::Error::RateLimited) => {
+            return (StatusCode::TOO_MANY_REQUESTS, "Too many requests").into_response();
+        }
+        Err(e) => {
+            tracing::error!("Middleware error: {}", e);
+            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+        }
+    };
+
+    // Use potentially middleware-modified headers and body for the proxy call.
+    let forward_headers = core_req.metadata.headers;
+    let forward_body = core_req.data;
 
     match state
         .http_gateway
@@ -78,20 +112,37 @@ async fn handle_request(
             &route.target,
             &path,
             query.as_deref(),
-            &headers,
-            body_bytes,
-            timeout,
+            &forward_headers,
+            forward_body,
+            timeout_secs,
         )
         .await
     {
         Ok((status, resp_headers, resp_body)) => {
+            let core_resp = crate::core::Response {
+                data: resp_body,
+                metadata: ResponseMetadata {
+                    status_code: Some(status),
+                    headers: resp_headers,
+                    duration: None,
+                },
+            };
+
+            let core_resp = match state.middleware.handle_response(core_resp).await {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!("Response middleware error: {}", e);
+                    return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                }
+            };
+
             let mut builder = axum::response::Response::builder()
-                .status(status);
-            for (name, value) in resp_headers {
+                .status(core_resp.metadata.status_code.unwrap_or(200));
+            for (name, value) in core_resp.metadata.headers {
                 builder = builder.header(name, value);
             }
             builder
-                .body(axum::body::Body::from(resp_body))
+                .body(axum::body::Body::from(core_resp.data))
                 .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
         }
         Err(e) => {
@@ -152,6 +203,7 @@ pub struct DefaultGateway {
     protocols: Vec<Arc<dyn Protocol>>,
     router: Arc<crate::core::Router>,
     http_gateway: Arc<crate::gateway::http::HttpGateway>,
+    middleware: Arc<MiddlewareChain>,
     shutdown: Arc<Notify>,
 }
 
@@ -166,6 +218,7 @@ impl Gateway for DefaultGateway {
         let state = AppState {
             router: Arc::clone(&self.router),
             http_gateway: Arc::clone(&self.http_gateway),
+            middleware: Arc::clone(&self.middleware),
         };
 
         let app = axum::Router::new()
@@ -211,12 +264,21 @@ pub fn create_gateway(config: GatewayConfig) -> Result<DefaultGateway> {
     let router = Arc::new(crate::core::Router::new(config.routes));
     let http_protocol = Arc::new(HttpProtocol::new(serde_json::Value::Null)?);
     let http_gateway = Arc::new(crate::gateway::http::HttpGateway::new(http_protocol));
+
+    // Build a default middleware chain with request/response logging.
+    let mut chain = MiddlewareChain::new();
+    chain.add(Arc::new(LoggingMiddleware::new(MiddlewareConfig {
+        enabled: true,
+        settings: serde_json::Value::Null,
+    })));
+
     Ok(DefaultGateway {
         host: config.host,
         port: config.port,
         protocols: config.protocols,
         router,
         http_gateway,
+        middleware: Arc::new(chain),
         shutdown: Arc::new(Notify::new()),
     })
 }

@@ -1,9 +1,22 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use iron_babel::config::RouteConfig;
 use iron_babel::error::Result;
 use iron_babel::protocols::Protocol;
 use iron_babel::gateway::ProtocolGateway;
+
+/// Build a `RouteConfig` with specific allowed methods (empty = allow all).
+#[allow(dead_code)]
+pub fn make_route_with_methods(path: &str, target: &str, methods: &[&str]) -> RouteConfig {
+    RouteConfig {
+        path: path.to_string(),
+        target: target.to_string(),
+        methods: methods.iter().map(|s| s.to_string()).collect(),
+        timeout_secs: Some(5),
+        strip_prefix: None,
+    }
+}
 
 /// A mock protocol for testing
 pub struct MockProtocol {

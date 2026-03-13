@@ -179,27 +179,47 @@ async fn proxy_forwards_query_string() {
 async fn proxy_strips_hop_by_hop_headers_from_request() {
     let mock_server = MockServer::start().await;
 
-    // The backend should NOT receive Transfer-Encoding
     Mock::given(method("GET"))
         .and(path("/"))
-        // If Transfer-Encoding were forwarded, wiremock would see it
         .respond_with(ResponseTemplate::new(200))
         .mount(&mock_server)
         .await;
 
     let gw = gateway();
-    let hop_headers = vec![
+    let headers = vec![
         ("transfer-encoding".to_string(), "chunked".to_string()),
         ("connection".to_string(), "keep-alive".to_string()),
         ("x-custom".to_string(), "preserved".to_string()),
     ];
 
     let (status, _, _) = gw
-        .proxy(reqwest::Method::GET, &mock_server.uri(), "/", None, &hop_headers, vec![], 5)
+        .proxy(reqwest::Method::GET, &mock_server.uri(), "/", None, &headers, vec![], 5)
         .await
         .unwrap();
 
     assert_eq!(status, 200);
+
+    // Inspect what the backend actually received.
+    let received = mock_server.received_requests().await.unwrap();
+    assert_eq!(received.len(), 1, "expected exactly one request at backend");
+    let req = &received[0];
+
+    // Hop-by-hop headers must NOT reach the backend.
+    assert!(
+        req.headers.get("transfer-encoding").is_none(),
+        "transfer-encoding should be stripped before forwarding"
+    );
+    assert!(
+        req.headers.get("connection").is_none(),
+        "connection should be stripped before forwarding"
+    );
+
+    // Non-hop-by-hop custom headers must be preserved.
+    assert_eq!(
+        req.headers.get("x-custom").and_then(|v| v.to_str().ok()),
+        Some("preserved"),
+        "x-custom header should be forwarded unchanged"
+    );
 }
 
 #[tokio::test]
