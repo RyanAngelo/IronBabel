@@ -8,7 +8,7 @@ pub struct GraphQLProtocol {
 }
 
 impl GraphQLProtocol {
-    pub fn new(settings: Value) -> Result<Self> {
+    pub fn new(_settings: Value) -> Result<Self> {
         Ok(Self {
             name: "graphql".to_string(),
         })

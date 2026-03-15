@@ -1,0 +1,18 @@
+License Information for serde v1.0.228
+==================================================
+
+Crate: serde
+Version: 1.0.228
+License: Apache-2.0 OR MIT
+Repository: https://github.com/serde-rs/serde
+Authors: Erick Tryzelaar <erick.tryzelaar@gmail.com>|David Tolnay <dtolnay@gmail.com>
+
+Description:
+A generic serialization/deserialization framework
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/serde
+- The LICENSE or LICENSE-* files in the repository

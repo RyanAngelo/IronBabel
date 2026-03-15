@@ -1,0 +1,18 @@
+License Information for iovec v0.1.4
+==================================================
+
+Crate: iovec
+Version: 0.1.4
+License: Apache-2.0 OR MIT
+Repository: https://github.com/carllerche/iovec
+Authors: Carl Lerche <me@carllerche.com>
+
+Description:
+Portable buffer type for scatter/gather I/O operations
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/iovec
+- The LICENSE or LICENSE-* files in the repository

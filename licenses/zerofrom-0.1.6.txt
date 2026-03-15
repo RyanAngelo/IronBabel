@@ -1,0 +1,18 @@
+License Information for zerofrom v0.1.6
+==================================================
+
+Crate: zerofrom
+Version: 0.1.6
+License: Unicode-3.0
+Repository: https://github.com/unicode-org/icu4x
+Authors: Manish Goregaokar <manishsmail@gmail.com>
+
+Description:
+ZeroFrom trait for constructing
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/zerofrom
+- The LICENSE or LICENSE-* files in the repository

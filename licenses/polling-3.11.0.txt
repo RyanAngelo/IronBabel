@@ -1,0 +1,18 @@
+License Information for polling v3.11.0
+==================================================
+
+Crate: polling
+Version: 3.11.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/smol-rs/polling
+Authors: Stjepan Glavina <stjepang@gmail.com>|John Nunley <dev@notgull.net>
+
+Description:
+Portable interface to epoll, kqueue, event ports, and IOCP
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/polling
+- The LICENSE or LICENSE-* files in the repository

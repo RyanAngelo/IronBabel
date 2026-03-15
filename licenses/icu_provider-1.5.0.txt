@@ -1,0 +1,18 @@
+License Information for icu_provider v1.5.0
+==================================================
+
+Crate: icu_provider
+Version: 1.5.0
+License: Unicode-3.0
+Repository: https://github.com/unicode-org/icu4x
+Authors: The ICU4X Project Developers
+
+Description:
+Trait and struct definitions for the ICU data provider
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/icu_provider
+- The LICENSE or LICENSE-* files in the repository

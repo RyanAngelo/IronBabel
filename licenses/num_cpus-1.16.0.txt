@@ -1,0 +1,18 @@
+License Information for num_cpus v1.16.0
+==================================================
+
+Crate: num_cpus
+Version: 1.16.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/seanmonstar/num_cpus
+Authors: Sean McArthur <sean@seanmonstar.com>
+
+Description:
+Get the number of CPUs on a machine.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/num_cpus
+- The LICENSE or LICENSE-* files in the repository

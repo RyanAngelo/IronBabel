@@ -1,0 +1,18 @@
+License Information for tokio v1.50.0
+==================================================
+
+Crate: tokio
+Version: 1.50.0
+License: MIT
+Repository: https://github.com/tokio-rs/tokio
+Authors: Tokio Contributors <team@tokio.rs>
+
+Description:
+An event-driven, non-blocking I/O platform for writing asynchronous I/O backed applications.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tokio
+- The LICENSE or LICENSE-* files in the repository

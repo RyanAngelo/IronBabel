@@ -1,0 +1,18 @@
+License Information for http-body-util v0.1.3
+==================================================
+
+Crate: http-body-util
+Version: 0.1.3
+License: MIT
+Repository: https://github.com/hyperium/http-body
+Authors: Carl Lerche <me@carllerche.com>|Lucio Franco <luciofranco14@gmail.com>|Sean McArthur <sean@seanmonstar.com>
+
+Description:
+Combinators and adapters for HTTP request or response bodies.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/http-body-util
+- The LICENSE or LICENSE-* files in the repository

@@ -59,13 +59,15 @@ mod tests {
     use super::*;
 
     fn make_route(path: &str, methods: &[&str]) -> RouteConfig {
+        use crate::config::{HttpTransportConfig, TransportConfig};
         RouteConfig {
             path: path.to_string(),
-            target: "http://127.0.0.1:9000".to_string(),
             methods: methods.iter().map(|s| s.to_string()).collect(),
-            timeout_secs: None,
-            strip_prefix: None,
-            zmq_pattern: None,
+            transport: TransportConfig::Http(HttpTransportConfig {
+                url: "http://127.0.0.1:9000".to_string(),
+                timeout_secs: 30,
+                strip_prefix: false,
+            }),
         }
     }
 

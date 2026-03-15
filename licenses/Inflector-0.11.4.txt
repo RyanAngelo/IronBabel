@@ -1,0 +1,18 @@
+License Information for Inflector v0.11.4
+==================================================
+
+Crate: Inflector
+Version: 0.11.4
+License: BSD-2-Clause
+Repository: https://github.com/whatisinternet/inflector
+Authors: Josh Teeter<joshteeter@gmail.com>
+
+Description:
+Adds String based inflections for Rust. Snake, kebab, camel, sentence, class, title and table cases as well as ordinalize, deordinalize, demodulize, foreign key, and pluralize/singularize are supported as both traits and pure functions acting on String types.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/Inflector
+- The LICENSE or LICENSE-* files in the repository

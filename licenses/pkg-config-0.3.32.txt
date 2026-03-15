@@ -1,0 +1,18 @@
+License Information for pkg-config v0.3.32
+==================================================
+
+Crate: pkg-config
+Version: 0.3.32
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/pkg-config-rs
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+A library to run the pkg-config system tool at build time in order to be used in Cargo build scripts.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/pkg-config
+- The LICENSE or LICENSE-* files in the repository

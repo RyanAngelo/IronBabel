@@ -1,0 +1,18 @@
+License Information for ordered-multimap v0.7.3
+==================================================
+
+Crate: ordered-multimap
+Version: 0.7.3
+License: MIT
+Repository: https://github.com/sgodwincs/ordered-multimap-rs
+Authors: Scott Godwin <sgodwincs@gmail.com>
+
+Description:
+Insertion ordered multimap
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ordered-multimap
+- The LICENSE or LICENSE-* files in the repository

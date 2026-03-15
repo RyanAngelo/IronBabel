@@ -1,0 +1,18 @@
+License Information for futures-task v0.3.31
+==================================================
+
+Crate: futures-task
+Version: 0.3.31
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/futures-rs
+Authors: N/A
+
+Description:
+Tools for working with tasks.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/futures-task
+- The LICENSE or LICENSE-* files in the repository

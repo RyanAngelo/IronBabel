@@ -1,0 +1,18 @@
+License Information for config v0.15.21
+==================================================
+
+Crate: config
+Version: 0.15.21
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-cli/config-rs
+Authors: N/A
+
+Description:
+Layered configuration system for Rust applications.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/config
+- The LICENSE or LICENSE-* files in the repository

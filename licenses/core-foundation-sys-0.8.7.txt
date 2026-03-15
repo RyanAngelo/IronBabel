@@ -1,0 +1,18 @@
+License Information for core-foundation-sys v0.8.7
+==================================================
+
+Crate: core-foundation-sys
+Version: 0.8.7
+License: Apache-2.0 OR MIT
+Repository: https://github.com/servo/core-foundation-rs
+Authors: The Servo Project Developers
+
+Description:
+Bindings to Core Foundation for macOS
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/core-foundation-sys
+- The LICENSE or LICENSE-* files in the repository

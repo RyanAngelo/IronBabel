@@ -1,0 +1,18 @@
+License Information for cpufeatures v0.2.17
+==================================================
+
+Crate: cpufeatures
+Version: 0.2.17
+License: Apache-2.0 OR MIT
+Repository: https://github.com/RustCrypto/utils
+Authors: RustCrypto Developers
+
+Description:
+Lightweight runtime CPU feature detection for aarch64, loongarch64, and x86/x86_64 targets,  with no_std support and support for mobile targets including Android and iOS
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/cpufeatures
+- The LICENSE or LICENSE-* files in the repository

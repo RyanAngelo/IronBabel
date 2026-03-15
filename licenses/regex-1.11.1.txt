@@ -1,0 +1,18 @@
+License Information for regex v1.11.1
+==================================================
+
+Crate: regex
+Version: 1.11.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/regex
+Authors: The Rust Project Developers|Andrew Gallant <jamslam@gmail.com>
+
+Description:
+An implementation of regular expressions for Rust. This implementation uses finite automata and guarantees linear time matching on all inputs.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/regex
+- The LICENSE or LICENSE-* files in the repository

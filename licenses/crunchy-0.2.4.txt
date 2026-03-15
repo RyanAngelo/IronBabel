@@ -1,0 +1,18 @@
+License Information for crunchy v0.2.4
+==================================================
+
+Crate: crunchy
+Version: 0.2.4
+License: MIT
+Repository: https://github.com/eira-fransham/crunchy
+Authors: Eira Fransham <jackefransham@gmail.com>
+
+Description:
+Crunchy unroller: deterministically unroll constant loops
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/crunchy
+- The LICENSE or LICENSE-* files in the repository

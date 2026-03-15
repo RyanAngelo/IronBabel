@@ -1,0 +1,18 @@
+License Information for derive_builder v0.20.2
+==================================================
+
+Crate: derive_builder
+Version: 0.20.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/colin-kiegel/rust-derive-builder
+Authors: Colin Kiegel <kiegel@gmx.de>|Pascal Hertleif <killercup@gmail.com>|Jan-Erik Rediger <janerik@fnordig.de>|Ted Driggs <ted.driggs@outlook.com>
+
+Description:
+Rust macro to automatically implement the builder pattern for arbitrary structs.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/derive_builder
+- The LICENSE or LICENSE-* files in the repository

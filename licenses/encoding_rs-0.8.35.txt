@@ -1,0 +1,18 @@
+License Information for encoding_rs v0.8.35
+==================================================
+
+Crate: encoding_rs
+Version: 0.8.35
+License: (Apache-2.0 OR MIT) AND BSD-3-Clause
+Repository: https://github.com/hsivonen/encoding_rs
+Authors: Henri Sivonen <hsivonen@hsivonen.fi>
+
+Description:
+A Gecko-oriented implementation of the Encoding Standard
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/encoding_rs
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for stable_deref_trait v1.2.0
+==================================================
+
+Crate: stable_deref_trait
+Version: 1.2.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/storyyeller/stable_deref_trait
+Authors: Robert Grosse <n210241048576@gmail.com>
+
+Description:
+An unsafe marker trait for types like Box and Rc that dereference to a stable address even when moved, and hence can be used with libraries such as owning_ref and rental.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/stable_deref_trait
+- The LICENSE or LICENSE-* files in the repository

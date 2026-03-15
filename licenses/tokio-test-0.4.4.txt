@@ -1,0 +1,18 @@
+License Information for tokio-test v0.4.4
+==================================================
+
+Crate: tokio-test
+Version: 0.4.4
+License: MIT
+Repository: https://github.com/tokio-rs/tokio
+Authors: Tokio Contributors <team@tokio.rs>
+
+Description:
+Testing utilities for Tokio- and futures-based code
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tokio-test
+- The LICENSE or LICENSE-* files in the repository

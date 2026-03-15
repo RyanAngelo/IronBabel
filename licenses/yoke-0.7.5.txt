@@ -1,0 +1,18 @@
+License Information for yoke v0.7.5
+==================================================
+
+Crate: yoke
+Version: 0.7.5
+License: Unicode-3.0
+Repository: https://github.com/unicode-org/icu4x
+Authors: Manish Goregaokar <manishsmail@gmail.com>
+
+Description:
+Abstraction allowing borrowed data to be carried along with the backing data it borrows from
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/yoke
+- The LICENSE or LICENSE-* files in the repository

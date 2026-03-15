@@ -1,0 +1,18 @@
+License Information for num-modular v0.6.1
+==================================================
+
+Crate: num-modular
+Version: 0.6.1
+License: Apache-2.0
+Repository: https://github.com/cmpute/num-modular
+Authors: N/A
+
+Description:
+Implementation of efficient integer division and modular arithmetic operations with generic number types. Supports various backends including num-bigint, etc..
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/num-modular
+- The LICENSE or LICENSE-* files in the repository

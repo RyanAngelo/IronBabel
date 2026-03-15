@@ -1,0 +1,18 @@
+License Information for linux-raw-sys v0.12.1
+==================================================
+
+Crate: linux-raw-sys
+Version: 0.12.1
+License: Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT
+Repository: https://github.com/sunfishcode/linux-raw-sys
+Authors: Dan Gohman <dev@sunfishcode.online>
+
+Description:
+Generated bindings for Linux's userspace API
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/linux-raw-sys
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for toml_writer v1.0.6+spec-1.1.0
+==================================================
+
+Crate: toml_writer
+Version: 1.0.6+spec-1.1.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/toml-rs/toml
+Authors: N/A
+
+Description:
+A low-level interface for writing out TOML
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/toml_writer
+- The LICENSE or LICENSE-* files in the repository

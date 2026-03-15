@@ -1,0 +1,18 @@
+License Information for zerovec v0.10.4
+==================================================
+
+Crate: zerovec
+Version: 0.10.4
+License: Unicode-3.0
+Repository: https://github.com/unicode-org/icu4x
+Authors: The ICU4X Project Developers
+
+Description:
+Zero-copy vector backed by a byte array
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/zerovec
+- The LICENSE or LICENSE-* files in the repository

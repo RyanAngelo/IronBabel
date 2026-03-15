@@ -1,0 +1,18 @@
+License Information for multer v3.1.0
+==================================================
+
+Crate: multer
+Version: 3.1.0
+License: MIT
+Repository: https://github.com/rwf2/multer
+Authors: Rousan Ali <hello@rousan.io>
+
+Description:
+An async parser for `multipart/form-data` content-type in Rust.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/multer
+- The LICENSE or LICENSE-* files in the repository

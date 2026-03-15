@@ -1,0 +1,18 @@
+License Information for errno v0.3.10
+==================================================
+
+Crate: errno
+Version: 0.3.10
+License: Apache-2.0 OR MIT
+Repository: https://github.com/lambda-fairy/rust-errno
+Authors: Chris Wong <lambda.fairy@gmail.com>
+
+Description:
+Cross-platform interface to the `errno` variable.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/errno
+- The LICENSE or LICENSE-* files in the repository

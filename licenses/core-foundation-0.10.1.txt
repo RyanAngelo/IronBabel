@@ -1,0 +1,18 @@
+License Information for core-foundation v0.10.1
+==================================================
+
+Crate: core-foundation
+Version: 0.10.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/servo/core-foundation-rs
+Authors: The Servo Project Developers
+
+Description:
+Bindings to Core Foundation for macOS
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/core-foundation
+- The LICENSE or LICENSE-* files in the repository

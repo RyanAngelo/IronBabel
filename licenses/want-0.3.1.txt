@@ -1,0 +1,18 @@
+License Information for want v0.3.1
+==================================================
+
+Crate: want
+Version: 0.3.1
+License: MIT
+Repository: https://github.com/seanmonstar/want
+Authors: Sean McArthur <sean@seanmonstar.com>
+
+Description:
+Detect when another Future wants a result.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/want
+- The LICENSE or LICENSE-* files in the repository

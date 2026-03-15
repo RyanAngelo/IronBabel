@@ -1,0 +1,18 @@
+License Information for ucd-trie v0.1.7
+==================================================
+
+Crate: ucd-trie
+Version: 0.1.7
+License: Apache-2.0 OR MIT
+Repository: https://github.com/BurntSushi/ucd-generate
+Authors: Andrew Gallant <jamslam@gmail.com>
+
+Description:
+A trie for storing Unicode codepoint sets and maps.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ucd-trie
+- The LICENSE or LICENSE-* files in the repository

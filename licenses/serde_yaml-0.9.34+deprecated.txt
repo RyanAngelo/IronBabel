@@ -1,0 +1,18 @@
+License Information for serde_yaml v0.9.34+deprecated
+==================================================
+
+Crate: serde_yaml
+Version: 0.9.34+deprecated
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/serde-yaml
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+YAML data format for Serde
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/serde_yaml
+- The LICENSE or LICENSE-* files in the repository

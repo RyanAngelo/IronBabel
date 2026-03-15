@@ -1,0 +1,18 @@
+License Information for pest_generator v2.8.0
+==================================================
+
+Crate: pest_generator
+Version: 2.8.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/pest-parser/pest
+Authors: Dragoș Tiselice <dragostiselice@gmail.com>
+
+Description:
+pest code generator
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/pest_generator
+- The LICENSE or LICENSE-* files in the repository

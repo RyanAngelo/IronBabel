@@ -1,0 +1,18 @@
+License Information for serde_spanned v1.0.4
+==================================================
+
+Crate: serde_spanned
+Version: 1.0.4
+License: Apache-2.0 OR MIT
+Repository: https://github.com/toml-rs/toml
+Authors: N/A
+
+Description:
+Serde-compatible spanned Value
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/serde_spanned
+- The LICENSE or LICENSE-* files in the repository

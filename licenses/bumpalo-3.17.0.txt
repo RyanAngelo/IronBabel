@@ -1,0 +1,18 @@
+License Information for bumpalo v3.17.0
+==================================================
+
+Crate: bumpalo
+Version: 3.17.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/fitzgen/bumpalo
+Authors: Nick Fitzgerald <fitzgen@gmail.com>
+
+Description:
+A fast bump allocation arena for Rust.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/bumpalo
+- The LICENSE or LICENSE-* files in the repository

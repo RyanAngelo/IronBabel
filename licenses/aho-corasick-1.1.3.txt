@@ -1,0 +1,18 @@
+License Information for aho-corasick v1.1.3
+==================================================
+
+Crate: aho-corasick
+Version: 1.1.3
+License: MIT OR Unlicense
+Repository: https://github.com/BurntSushi/aho-corasick
+Authors: Andrew Gallant <jamslam@gmail.com>
+
+Description:
+Fast multiple substring searching.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/aho-corasick
+- The LICENSE or LICENSE-* files in the repository

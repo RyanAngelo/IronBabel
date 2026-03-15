@@ -1,0 +1,18 @@
+License Information for ws2_32-sys v0.2.1
+==================================================
+
+Crate: ws2_32-sys
+Version: 0.2.1
+License: MIT
+Repository: https://github.com/retep998/winapi-rs
+Authors: Peter Atashian <retep998@gmail.com>
+
+Description:
+Contains function definitions for the Windows API library ws2_32. See winapi for types and constants.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ws2_32-sys
+- The LICENSE or LICENSE-* files in the repository

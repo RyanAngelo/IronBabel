@@ -8,7 +8,7 @@ pub struct MqttProtocol {
 }
 
 impl MqttProtocol {
-    pub fn new(settings: Value) -> Result<Self> {
+    pub fn new(_settings: Value) -> Result<Self> {
         Ok(Self {
             name: "mqtt".to_string(),
         })

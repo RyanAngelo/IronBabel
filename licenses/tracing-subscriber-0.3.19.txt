@@ -1,0 +1,18 @@
+License Information for tracing-subscriber v0.3.19
+==================================================
+
+Crate: tracing-subscriber
+Version: 0.3.19
+License: MIT
+Repository: https://github.com/tokio-rs/tracing
+Authors: Eliza Weisman <eliza@buoyant.io>|David Barsky <me@davidbarsky.com>|Tokio Contributors <team@tokio.rs>
+
+Description:
+Utilities for implementing and composing `tracing` subscribers.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tracing-subscriber
+- The LICENSE or LICENSE-* files in the repository

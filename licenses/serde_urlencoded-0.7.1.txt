@@ -1,0 +1,18 @@
+License Information for serde_urlencoded v0.7.1
+==================================================
+
+Crate: serde_urlencoded
+Version: 0.7.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/nox/serde_urlencoded
+Authors: Anthony Ramine <n.oxyde@gmail.com>
+
+Description:
+`x-www-form-urlencoded` meets Serde
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/serde_urlencoded
+- The LICENSE or LICENSE-* files in the repository

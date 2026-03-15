@@ -24,7 +24,8 @@ pub fn create_test_config() -> GatewayConfig {
             },
         ],
         routes: vec![],
-        zmq_listeners: vec![],
+        listeners: vec![],
+        middleware: Default::default(),
     }
 }
 
@@ -32,14 +33,13 @@ pub fn create_minimal_test_config() -> GatewayConfig {
     GatewayConfig {
         port: 8080,
         host: "127.0.0.1".to_string(),
-        protocols: vec![
-            ProtocolConfig {
-                name: "http".to_string(),
-                enabled: true,
-                settings: json!({}),
-            },
-        ],
+        protocols: vec![ProtocolConfig {
+            name: "http".to_string(),
+            enabled: true,
+            settings: json!({}),
+        }],
         routes: vec![],
-        zmq_listeners: vec![],
+        listeners: vec![],
+        middleware: Default::default(),
     }
-} 
+}

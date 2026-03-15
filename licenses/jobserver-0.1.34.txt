@@ -1,0 +1,18 @@
+License Information for jobserver v0.1.34
+==================================================
+
+Crate: jobserver
+Version: 0.1.34
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/jobserver-rs
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+An implementation of the GNU Make jobserver for Rust.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/jobserver
+- The LICENSE or LICENSE-* files in the repository

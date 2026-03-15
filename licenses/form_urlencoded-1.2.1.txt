@@ -1,0 +1,18 @@
+License Information for form_urlencoded v1.2.1
+==================================================
+
+Crate: form_urlencoded
+Version: 1.2.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/servo/rust-url
+Authors: The rust-url developers
+
+Description:
+Parser and serializer for the application/x-www-form-urlencoded syntax, as used by HTML forms.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/form_urlencoded
+- The LICENSE or LICENSE-* files in the repository

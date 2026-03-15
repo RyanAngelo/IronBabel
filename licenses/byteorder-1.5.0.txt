@@ -1,0 +1,18 @@
+License Information for byteorder v1.5.0
+==================================================
+
+Crate: byteorder
+Version: 1.5.0
+License: MIT OR Unlicense
+Repository: https://github.com/BurntSushi/byteorder
+Authors: Andrew Gallant <jamslam@gmail.com>
+
+Description:
+Library for reading/writing numbers in big-endian and little-endian.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/byteorder
+- The LICENSE or LICENSE-* files in the repository

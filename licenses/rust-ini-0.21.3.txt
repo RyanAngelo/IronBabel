@@ -1,0 +1,18 @@
+License Information for rust-ini v0.21.3
+==================================================
+
+Crate: rust-ini
+Version: 0.21.3
+License: MIT
+Repository: https://github.com/zonyitoo/rust-ini
+Authors: Y. T. Chung <zonyitoo@gmail.com>
+
+Description:
+An Ini configuration file parsing library in Rust
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/rust-ini
+- The LICENSE or LICENSE-* files in the repository

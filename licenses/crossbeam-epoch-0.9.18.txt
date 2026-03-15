@@ -1,0 +1,18 @@
+License Information for crossbeam-epoch v0.9.18
+==================================================
+
+Crate: crossbeam-epoch
+Version: 0.9.18
+License: Apache-2.0 OR MIT
+Repository: https://github.com/crossbeam-rs/crossbeam
+Authors: N/A
+
+Description:
+Epoch-based garbage collection
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/crossbeam-epoch
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for syn v2.0.100
+==================================================
+
+Crate: syn
+Version: 2.0.100
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/syn
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Parser for Rust source code
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/syn
+- The LICENSE or LICENSE-* files in the repository

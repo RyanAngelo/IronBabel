@@ -1,0 +1,18 @@
+License Information for wit-bindgen-rt v0.39.0
+==================================================
+
+Crate: wit-bindgen-rt
+Version: 0.39.0
+License: Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT
+Repository: https://github.com/bytecodealliance/wit-bindgen
+Authors: N/A
+
+Description:
+Runtime support for the `wit-bindgen` crate
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/wit-bindgen-rt
+- The LICENSE or LICENSE-* files in the repository

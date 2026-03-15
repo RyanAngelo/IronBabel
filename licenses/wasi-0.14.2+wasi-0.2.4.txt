@@ -1,0 +1,18 @@
+License Information for wasi v0.14.2+wasi-0.2.4
+==================================================
+
+Crate: wasi
+Version: 0.14.2+wasi-0.2.4
+License: Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT
+Repository: https://github.com/bytecodealliance/wasi-rs
+Authors: The Cranelift Project Developers
+
+Description:
+WASI API bindings for Rust
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/wasi
+- The LICENSE or LICENSE-* files in the repository

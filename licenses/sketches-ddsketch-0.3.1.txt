@@ -1,0 +1,18 @@
+License Information for sketches-ddsketch v0.3.1
+==================================================
+
+Crate: sketches-ddsketch
+Version: 0.3.1
+License: Apache-2.0
+Repository: https://github.com/mheffner/rust-sketches-ddsketch
+Authors: Mike Heffner <mikeh@fesnel.com>
+
+Description:
+A direct port of the Golang DDSketch implementation.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/sketches-ddsketch
+- The LICENSE or LICENSE-* files in the repository

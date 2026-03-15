@@ -1,0 +1,18 @@
+License Information for thread_local v1.1.8
+==================================================
+
+Crate: thread_local
+Version: 1.1.8
+License: Apache-2.0 OR MIT
+Repository: https://github.com/Amanieu/thread_local-rs
+Authors: Amanieu d'Antras <amanieu@gmail.com>
+
+Description:
+Per-object thread-local storage
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/thread_local
+- The LICENSE or LICENSE-* files in the repository

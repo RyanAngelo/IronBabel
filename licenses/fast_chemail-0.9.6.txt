@@ -1,0 +1,18 @@
+License Information for fast_chemail v0.9.6
+==================================================
+
+Crate: fast_chemail
+Version: 0.9.6
+License: MPL-2.0
+Repository: https://gitlab.com/fast_chemail/fast_chemail-rs
+Authors: Jonas Me (https://gitlab.com/vulkano)
+
+Description:
+Check email address
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/fast_chemail
+- The LICENSE or LICENSE-* files in the repository

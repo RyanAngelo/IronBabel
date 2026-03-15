@@ -1,0 +1,18 @@
+License Information for hyper v1.8.1
+==================================================
+
+Crate: hyper
+Version: 1.8.1
+License: MIT
+Repository: https://github.com/hyperium/hyper
+Authors: Sean McArthur <sean@seanmonstar.com>
+
+Description:
+A protective and efficient HTTP library for all.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/hyper
+- The LICENSE or LICENSE-* files in the repository

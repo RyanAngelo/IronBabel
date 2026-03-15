@@ -1,0 +1,18 @@
+License Information for raw-cpuid v11.5.0
+==================================================
+
+Crate: raw-cpuid
+Version: 11.5.0
+License: MIT
+Repository: https://github.com/gz/rust-cpuid
+Authors: Gerd Zellweger <mail@gerdzellweger.com>
+
+Description:
+A library to parse the x86 CPUID instruction, written in rust with no external dependencies. The implementation closely resembles the Intel CPUID manual description. The library does only depend on libcore.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/raw-cpuid
+- The LICENSE or LICENSE-* files in the repository

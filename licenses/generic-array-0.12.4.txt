@@ -1,0 +1,18 @@
+License Information for generic-array v0.12.4
+==================================================
+
+Crate: generic-array
+Version: 0.12.4
+License: MIT
+Repository: https://github.com/fizyk20/generic-array.git
+Authors: Bartłomiej Kamiński <fizyk20@gmail.com>|Aaron Trent <novacrazy@gmail.com>
+
+Description:
+Generic types implementing functionality of arrays
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/generic-array
+- The LICENSE or LICENSE-* files in the repository

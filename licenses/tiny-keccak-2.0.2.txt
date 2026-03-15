@@ -1,0 +1,18 @@
+License Information for tiny-keccak v2.0.2
+==================================================
+
+Crate: tiny-keccak
+Version: 2.0.2
+License: CC0-1.0
+Repository: NO-REPO
+Authors: debris <marek.kotewicz@gmail.com>
+
+Description:
+An implementation of Keccak derived functions.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tiny-keccak
+- The LICENSE or LICENSE-* files in the repository

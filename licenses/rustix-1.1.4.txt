@@ -1,0 +1,18 @@
+License Information for rustix v1.1.4
+==================================================
+
+Crate: rustix
+Version: 1.1.4
+License: Apache-2.0 OR Apache-2.0 WITH LLVM-exception OR MIT
+Repository: https://github.com/bytecodealliance/rustix
+Authors: Dan Gohman <dev@sunfishcode.online>|Jakub Konka <kubkon@jakubkonka.com>
+
+Description:
+Safe Rust bindings to POSIX/Unix/Linux/Winsock-like syscalls
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/rustix
+- The LICENSE or LICENSE-* files in the repository

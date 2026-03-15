@@ -1,4 +1,4 @@
-FROM rust:1.86-slim-bullseye
+FROM rust:1.94-slim-bullseye
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

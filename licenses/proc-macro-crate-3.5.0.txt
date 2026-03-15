@@ -1,0 +1,18 @@
+License Information for proc-macro-crate v3.5.0
+==================================================
+
+Crate: proc-macro-crate
+Version: 3.5.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/bkchr/proc-macro-crate
+Authors: Bastian Köcher <git@kchr.de>
+
+Description:
+Replacement for crate (macro_rules keyword) in proc-macros
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/proc-macro-crate
+- The LICENSE or LICENSE-* files in the repository

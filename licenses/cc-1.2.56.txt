@@ -1,0 +1,18 @@
+License Information for cc v1.2.56
+==================================================
+
+Crate: cc
+Version: 1.2.56
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/cc-rs
+Authors: Alex Crichton <alex@alexcrichton.com>
+
+Description:
+A build-time dependency for Cargo build scripts to assist in invoking the native C compiler to compile native C code into a static archive to be linked into Rust code.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/cc
+- The LICENSE or LICENSE-* files in the repository

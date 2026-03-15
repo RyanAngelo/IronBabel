@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use tracing::{info, error};
+use tracing::info;
 use crate::core::{Request, Response, MiddlewareConfig};
 use crate::error::Result;
 
@@ -17,18 +17,17 @@ impl LoggingMiddleware {
 impl super::Middleware for LoggingMiddleware {
     async fn handle_request(&self, request: Request) -> Result<Request> {
         info!(
-            "Incoming request: {} {}",
-            request.method(),
-            request.uri()
+            method = request.metadata.method.as_deref().unwrap_or("UNKNOWN"),
+            path = request.metadata.path.as_deref().unwrap_or("/"),
+            "Incoming request"
         );
         Ok(request)
     }
 
     async fn handle_response(&self, response: Response) -> Result<Response> {
         info!(
-            "Outgoing response: {} {}",
-            response.status(),
-            response.status().canonical_reason().unwrap_or("")
+            status = response.metadata.status_code.unwrap_or(0),
+            "Outgoing response"
         );
         Ok(response)
     }
@@ -36,4 +35,4 @@ impl super::Middleware for LoggingMiddleware {
     fn config(&self) -> &MiddlewareConfig {
         &self.config
     }
-} 
+}

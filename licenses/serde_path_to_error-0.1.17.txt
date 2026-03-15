@@ -1,0 +1,18 @@
+License Information for serde_path_to_error v0.1.17
+==================================================
+
+Crate: serde_path_to_error
+Version: 0.1.17
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/path-to-error
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Path to the element that failed to deserialize
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/serde_path_to_error
+- The LICENSE or LICENSE-* files in the repository

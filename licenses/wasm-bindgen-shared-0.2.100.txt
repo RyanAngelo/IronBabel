@@ -1,0 +1,18 @@
+License Information for wasm-bindgen-shared v0.2.100
+==================================================
+
+Crate: wasm-bindgen-shared
+Version: 0.2.100
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rustwasm/wasm-bindgen/tree/master/crates/shared
+Authors: The wasm-bindgen Developers
+
+Description:
+Shared support between wasm-bindgen and wasm-bindgen cli, an internal dependency.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/wasm-bindgen-shared
+- The LICENSE or LICENSE-* files in the repository

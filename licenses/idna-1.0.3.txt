@@ -1,0 +1,18 @@
+License Information for idna v1.0.3
+==================================================
+
+Crate: idna
+Version: 1.0.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/servo/rust-url/
+Authors: The rust-url developers
+
+Description:
+IDNA (Internationalizing Domain Names in Applications) and Punycode.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/idna
+- The LICENSE or LICENSE-* files in the repository

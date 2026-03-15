@@ -38,6 +38,25 @@ impl Protocol for HttpProtocol {
     }
 }
 
+/// Returns `true` if `path` contains a `..` traversal segment in raw or
+/// percent-encoded form (e.g. `%2e%2e`, `.%2e`, `%2e.`).
+///
+/// The check iteratively decodes percent-encoded dots so that multi-level
+/// encoding such as `%252e%252e` is also rejected.
+pub fn path_contains_traversal(path: &str) -> bool {
+    let mut p = path.to_ascii_lowercase();
+    // Iteratively decode percent-encoded percent signs (%25 → %) and dots
+    // (%2e → .) to catch multi-level encoding such as %252e%252e → %2e%2e → ..
+    loop {
+        let decoded = p.replace("%25", "%").replace("%2e", ".");
+        if decoded == p {
+            break;
+        }
+        p = decoded;
+    }
+    p.split('/').any(|seg| seg == "..")
+}
+
 /// Strips hop-by-hop headers that must not be forwarded to backends.
 /// See RFC 7230 Section 6.1.
 pub fn strip_hop_by_hop_headers(headers: &[(String, String)]) -> Vec<(String, String)> {
@@ -170,5 +189,34 @@ mod tests {
     #[test]
     fn empty_headers_returns_empty() {
         assert!(strip_hop_by_hop_headers(&[]).is_empty());
+    }
+
+    // --- path_contains_traversal ---
+
+    #[test]
+    fn detects_plain_traversal() {
+        assert!(path_contains_traversal("/../etc/passwd"));
+        assert!(path_contains_traversal("/api/../secret"));
+    }
+
+    #[test]
+    fn detects_percent_encoded_traversal() {
+        assert!(path_contains_traversal("/%2e%2e/etc/passwd"));
+        assert!(path_contains_traversal("/%2E%2E/etc/passwd"));
+        assert!(path_contains_traversal("/.%2e/etc"));
+        assert!(path_contains_traversal("/%2e./etc"));
+    }
+
+    #[test]
+    fn detects_double_encoded_traversal() {
+        assert!(path_contains_traversal("/%252e%252e/etc"));
+    }
+
+    #[test]
+    fn allows_normal_paths() {
+        assert!(!path_contains_traversal("/api/users"));
+        assert!(!path_contains_traversal("/"));
+        assert!(!path_contains_traversal("/api/v2"));
+        assert!(!path_contains_traversal("/foo.bar/baz"));
     }
 }

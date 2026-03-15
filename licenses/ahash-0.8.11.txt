@@ -1,0 +1,18 @@
+License Information for ahash v0.8.11
+==================================================
+
+Crate: ahash
+Version: 0.8.11
+License: Apache-2.0 OR MIT
+Repository: https://github.com/tkaitchuck/ahash
+Authors: Tom Kaitchuck <Tom.Kaitchuck@gmail.com>
+
+Description:
+A non-cryptographic hash function using AES-NI for high performance
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ahash
+- The LICENSE or LICENSE-* files in the repository

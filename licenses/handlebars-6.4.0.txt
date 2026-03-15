@@ -1,0 +1,18 @@
+License Information for handlebars v6.4.0
+==================================================
+
+Crate: handlebars
+Version: 6.4.0
+License: MIT
+Repository: https://github.com/sunng87/handlebars-rust
+Authors: Ning Sun <sunng@pm.me>
+
+Description:
+Handlebars templating implemented in Rust.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/handlebars
+- The LICENSE or LICENSE-* files in the repository

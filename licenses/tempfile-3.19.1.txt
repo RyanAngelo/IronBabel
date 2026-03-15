@@ -1,0 +1,18 @@
+License Information for tempfile v3.19.1
+==================================================
+
+Crate: tempfile
+Version: 3.19.1
+License: Apache-2.0 OR MIT
+Repository: https://github.com/Stebalien/tempfile
+Authors: Steven Allen <steven@stebalien.com>|The Rust Project Developers|Ashley Mannix <ashleymannix@live.com.au>|Jason White <me@jasonwhite.io>
+
+Description:
+A library for managing temporary files and directories.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tempfile
+- The LICENSE or LICENSE-* files in the repository

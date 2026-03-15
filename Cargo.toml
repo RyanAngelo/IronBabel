@@ -2,7 +2,7 @@
 name = "iron-babel"
 version = "0.1.0"
 edition = "2021"
-authors = ["Ryan Angelo <ryan.angelo@gmail.com>"]
+authors = ["Ryan Angelo <ryanangelo@icloud.com>"]
 description = "A cross-protocol API gateway for seamless service communication"
 license = "MIT"
 
@@ -13,45 +13,40 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 zeromq = "0.4"
 
 # HTTP server and client
-axum = "0.8"
-hyper = "1.6"
+axum = "0.8.8"
+hyper = "1.1"
 reqwest = { version = "0.12", features = ["json", "stream"] }
 
 # Protocol support
-tonic = "0.13"
-async-graphql = "7.0"
-paho-mqtt = "0.13"
-ws = "0.9"
+tonic = "0.14.5"
 
 # Serialization
-serde = "1.0"
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-prost = "0.14"
 
 # Configuration
-config = "0.15"
 serde_yaml = "0.9"
-toml = "0.8"
 
 # Logging and metrics
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-metrics = "0.24"
-metrics-exporter-prometheus = "0.17"
+metrics = "0.24.3"
+metrics-exporter-prometheus = "0.18.1"
 
 # Error handling
-thiserror = "2.0"
-anyhow = "1.0"
+thiserror = "2.0.18"
 
 # Utilities
 async-trait = "0.1"
 futures = "0.3"
-tower = "0.5"
-tower-http = { version = "0.6", features = ["limit", "timeout", "trace"] }
+tower = "0.5.3"
+tower-http = { version = "0.6.8", features = ["limit", "timeout", "trace"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
-wiremock = "0.6"
+wiremock = "0.6.5"
 
-[build-dependencies]
-tonic-build = "0.13" 
+
+[[bin]]
+name = "create_licenses"
+path = "scripts/create_licenses.rs"

@@ -1,0 +1,18 @@
+License Information for sha2 v0.10.8
+==================================================
+
+Crate: sha2
+Version: 0.10.8
+License: Apache-2.0 OR MIT
+Repository: https://github.com/RustCrypto/hashes
+Authors: RustCrypto Developers
+
+Description:
+Pure Rust implementation of the SHA-2 hash function family including SHA-224, SHA-256, SHA-384, and SHA-512.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/sha2
+- The LICENSE or LICENSE-* files in the repository

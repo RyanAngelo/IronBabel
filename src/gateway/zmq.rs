@@ -2,17 +2,24 @@ use std::time::Duration;
 
 use zeromq::prelude::*;
 
-use crate::config::ZmqListenerConfig;
+use crate::config::ZmqPullListenerConfig;
 use crate::error::{Error, Result};
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Convert an IronBabel `zmq://host:port` address to the `tcp://host:port`
-/// form that the zeromq crate expects.
-fn to_tcp_addr(zmq_url: &str) -> String {
-    zmq_url.replacen("zmq://", "tcp://", 1)
+/// Convert an address to the `tcp://host:port` form that the zeromq crate
+/// expects. Accepts `zmq://host:port`, plain `host:port`, or an already-valid
+/// `tcp://host:port` address.
+fn to_tcp_addr(addr: &str) -> String {
+    if addr.starts_with("zmq://") {
+        addr.replacen("zmq://", "tcp://", 1)
+    } else if addr.starts_with("tcp://") {
+        addr.to_string()
+    } else {
+        format!("tcp://{}", addr)
+    }
 }
 
 /// Flatten all frames of a `ZmqMessage` into a single `Vec<u8>`.
@@ -92,6 +99,39 @@ impl ZmqGateway {
 
         Ok(())
     }
+
+    /// **PUB/SUB** — publish `body` to a ZMQ subscriber, fire-and-forget.
+    ///
+    /// Opens a PUB socket, connects to `target`, and sends a single frame
+    /// containing the optional `topic` prefix followed by `body`. Subscribers
+    /// filter by the topic prefix via `set_subscribe`. Returns immediately;
+    /// the caller should respond with 202.
+    pub async fn forward_pub(
+        &self,
+        target: &str,
+        body: Vec<u8>,
+        topic: Option<&str>,
+    ) -> Result<()> {
+        let addr = to_tcp_addr(target);
+
+        let mut socket = zeromq::PubSocket::new();
+        socket
+            .connect(&addr)
+            .await
+            .map_err(|e| Error::Protocol(format!("ZMQ connect failed ({}): {}", addr, e)))?;
+
+        // Prefix the message with the topic bytes so subscribers can filter.
+        // Convention: [topic_bytes || body_bytes] in a single frame.
+        let mut message = topic.unwrap_or("").as_bytes().to_vec();
+        message.extend_from_slice(&body);
+
+        socket
+            .send(zeromq::ZmqMessage::from(message))
+            .await
+            .map_err(|e| Error::Protocol(format!("ZMQ send failed: {}", e)))?;
+
+        Ok(())
+    }
 }
 
 impl Default for ZmqGateway {
@@ -110,9 +150,9 @@ impl Default for ZmqGateway {
 /// Spawned once per `zmq_listeners` entry during gateway startup.
 /// The task exits only on socket error; in practice it runs until the process
 /// terminates.
-pub async fn run_pull_listener(config: ZmqListenerConfig) {
-    let bind_addr = to_tcp_addr(&config.listen);
-    let http_target = config.target.clone();
+pub async fn run_pull_listener(config: ZmqPullListenerConfig) {
+    let bind_addr = to_tcp_addr(&config.bind);
+    let http_target = config.forward_to.clone();
 
     let mut socket = zeromq::PullSocket::new();
     match socket.bind(&bind_addr).await {

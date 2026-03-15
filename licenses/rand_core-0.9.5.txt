@@ -1,0 +1,18 @@
+License Information for rand_core v0.9.5
+==================================================
+
+Crate: rand_core
+Version: 0.9.5
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-random/rand
+Authors: The Rand Project Developers|The Rust Project Developers
+
+Description:
+Core random number generator traits and tools for implementation.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/rand_core
+- The LICENSE or LICENSE-* files in the repository

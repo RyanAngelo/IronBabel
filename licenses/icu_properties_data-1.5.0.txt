@@ -1,0 +1,18 @@
+License Information for icu_properties_data v1.5.0
+==================================================
+
+Crate: icu_properties_data
+Version: 1.5.0
+License: Unicode-3.0
+Repository: https://github.com/unicode-org/icu4x
+Authors: The ICU4X Project Developers
+
+Description:
+Data for the icu_properties crate
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/icu_properties_data
+- The LICENSE or LICENSE-* files in the repository

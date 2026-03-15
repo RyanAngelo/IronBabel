@@ -45,10 +45,10 @@ pub struct HealthResponse {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RouteInfo {
     pub path: String,
+    pub transport_type: String,
     pub target: String,
     pub methods: Vec<String>,
-    pub timeout_secs: Option<u64>,
-    pub strip_prefix: Option<bool>,
+    pub timeout_secs: u64,
     pub total_requests: u64,
     pub error_count: u64,
     pub avg_latency_ms: f64,

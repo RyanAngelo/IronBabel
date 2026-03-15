@@ -1,0 +1,18 @@
+License Information for sharded-slab v0.1.7
+==================================================
+
+Crate: sharded-slab
+Version: 0.1.7
+License: MIT
+Repository: https://github.com/hawkw/sharded-slab
+Authors: Eliza Weisman <eliza@buoyant.io>
+
+Description:
+A lock-free concurrent slab.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/sharded-slab
+- The LICENSE or LICENSE-* files in the repository

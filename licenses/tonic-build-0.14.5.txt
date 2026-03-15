@@ -1,0 +1,18 @@
+License Information for tonic-build v0.14.5
+==================================================
+
+Crate: tonic-build
+Version: 0.14.5
+License: MIT
+Repository: https://github.com/hyperium/tonic
+Authors: Lucio Franco <luciofranco14@gmail.com>
+
+Description:
+Codegen module of `tonic` gRPC implementation.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tonic-build
+- The LICENSE or LICENSE-* files in the repository

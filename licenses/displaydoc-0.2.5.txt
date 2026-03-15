@@ -1,0 +1,18 @@
+License Information for displaydoc v0.2.5
+==================================================
+
+Crate: displaydoc
+Version: 0.2.5
+License: Apache-2.0 OR MIT
+Repository: https://github.com/yaahc/displaydoc
+Authors: Jane Lusby <jlusby@yaah.dev>
+
+Description:
+A derive macro for implementing the display Trait via a doc comment and string interpolation
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/displaydoc
+- The LICENSE or LICENSE-* files in the repository

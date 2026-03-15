@@ -8,7 +8,7 @@ pub struct WebSocketProtocol {
 }
 
 impl WebSocketProtocol {
-    pub fn new(settings: Value) -> Result<Self> {
+    pub fn new(_settings: Value) -> Result<Self> {
         Ok(Self {
             name: "websocket".to_string(),
         })

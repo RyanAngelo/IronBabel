@@ -1,0 +1,18 @@
+License Information for ws v0.9.2
+==================================================
+
+Crate: ws
+Version: 0.9.2
+License: MIT
+Repository: https://github.com/housleyjk/ws-rs
+Authors: Jason Housley <HousleyJK@gmail.com>
+
+Description:
+Lightweight, event-driven WebSockets for Rust.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/ws
+- The LICENSE or LICENSE-* files in the repository

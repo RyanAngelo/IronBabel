@@ -1,0 +1,18 @@
+License Information for tracing-log v0.2.0
+==================================================
+
+Crate: tracing-log
+Version: 0.2.0
+License: MIT
+Repository: https://github.com/tokio-rs/tracing
+Authors: Tokio Contributors <team@tokio.rs>
+
+Description:
+Provides compatibility between `tracing` and the `log` crate.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/tracing-log
+- The LICENSE or LICENSE-* files in the repository

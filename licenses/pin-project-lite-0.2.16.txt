@@ -1,0 +1,18 @@
+License Information for pin-project-lite v0.2.16
+==================================================
+
+Crate: pin-project-lite
+Version: 0.2.16
+License: Apache-2.0 OR MIT
+Repository: https://github.com/taiki-e/pin-project-lite
+Authors: N/A
+
+Description:
+A lightweight version of pin-project written with declarative macros.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/pin-project-lite
+- The LICENSE or LICENSE-* files in the repository

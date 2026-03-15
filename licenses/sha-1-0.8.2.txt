@@ -1,0 +1,18 @@
+License Information for sha-1 v0.8.2
+==================================================
+
+Crate: sha-1
+Version: 0.8.2
+License: Apache-2.0 OR MIT
+Repository: https://github.com/RustCrypto/hashes
+Authors: RustCrypto Developers
+
+Description:
+SHA-1 hash function
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/sha-1
+- The LICENSE or LICENSE-* files in the repository

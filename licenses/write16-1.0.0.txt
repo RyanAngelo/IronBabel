@@ -1,0 +1,18 @@
+License Information for write16 v1.0.0
+==================================================
+
+Crate: write16
+Version: 1.0.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/hsivonen/write16
+Authors: N/A
+
+Description:
+A UTF-16 analog of the Write trait
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/write16
+- The LICENSE or LICENSE-* files in the repository

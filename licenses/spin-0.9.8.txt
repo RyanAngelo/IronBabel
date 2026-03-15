@@ -1,0 +1,18 @@
+License Information for spin v0.9.8
+==================================================
+
+Crate: spin
+Version: 0.9.8
+License: MIT
+Repository: https://github.com/mvdnes/spin-rs.git
+Authors: Mathijs van de Nes <git@mathijs.vd-nes.nl>|John Ericson <git@JohnEricson.me>|Joshua Barretto <joshua.s.barretto@gmail.com>
+
+Description:
+Spin-based synchronization primitives
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/spin
+- The LICENSE or LICENSE-* files in the repository

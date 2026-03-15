@@ -1,0 +1,18 @@
+License Information for quote v1.0.40
+==================================================
+
+Crate: quote
+Version: 1.0.40
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/quote
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Quasi-quoting macro quote!(...)
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/quote
+- The LICENSE or LICENSE-* files in the repository

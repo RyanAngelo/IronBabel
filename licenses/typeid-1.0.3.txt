@@ -1,0 +1,18 @@
+License Information for typeid v1.0.3
+==================================================
+
+Crate: typeid
+Version: 1.0.3
+License: Apache-2.0 OR MIT
+Repository: https://github.com/dtolnay/typeid
+Authors: David Tolnay <dtolnay@gmail.com>
+
+Description:
+Const TypeId and non-'static TypeId
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/typeid
+- The LICENSE or LICENSE-* files in the repository

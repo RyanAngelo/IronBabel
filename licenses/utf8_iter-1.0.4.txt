@@ -1,0 +1,18 @@
+License Information for utf8_iter v1.0.4
+==================================================
+
+Crate: utf8_iter
+Version: 1.0.4
+License: Apache-2.0 OR MIT
+Repository: https://github.com/hsivonen/utf8_iter
+Authors: Henri Sivonen <hsivonen@hsivonen.fi>
+
+Description:
+Iterator by char over potentially-invalid UTF-8 in &[u8]
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/utf8_iter
+- The LICENSE or LICENSE-* files in the repository

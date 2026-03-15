@@ -1,0 +1,18 @@
+License Information for futures-core v0.3.31
+==================================================
+
+Crate: futures-core
+Version: 0.3.31
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-lang/futures-rs
+Authors: N/A
+
+Description:
+The core traits and types in for the `futures` library.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/futures-core
+- The LICENSE or LICENSE-* files in the repository

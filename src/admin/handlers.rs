@@ -15,6 +15,7 @@ use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 use crate::admin::types::{
     BucketPoint, HealthResponse, MetricsSummary, RequestLogEntry, RouteInfo,
 };
+use crate::config::TransportConfig;
 use crate::core::gateway::AppState;
 
 pub async fn admin_index() -> Html<&'static str> {
@@ -99,12 +100,20 @@ pub async fn admin_routes(State(state): State<AppState>) -> Json<Vec<RouteInfo>>
             } else {
                 0.0
             };
+            let (transport_type, target, timeout_secs) = match &r.transport {
+                TransportConfig::Http(cfg) => {
+                    ("http".to_string(), cfg.url.clone(), cfg.timeout_secs)
+                }
+                TransportConfig::Zmq(cfg) => {
+                    ("zmq".to_string(), cfg.address.clone(), cfg.timeout_secs)
+                }
+            };
             RouteInfo {
                 path: r.path.clone(),
-                target: r.target.clone(),
+                transport_type,
+                target,
                 methods: r.methods.clone(),
-                timeout_secs: r.timeout_secs,
-                strip_prefix: r.strip_prefix,
+                timeout_secs,
                 total_requests: stats.total_requests,
                 error_count: stats.error_count,
                 avg_latency_ms,

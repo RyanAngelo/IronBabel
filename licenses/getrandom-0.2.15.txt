@@ -1,0 +1,18 @@
+License Information for getrandom v0.2.15
+==================================================
+
+Crate: getrandom
+Version: 0.2.15
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rust-random/getrandom
+Authors: The Rand Project Developers
+
+Description:
+A small cross-platform library for retrieving random data from system source
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/getrandom
+- The LICENSE or LICENSE-* files in the repository

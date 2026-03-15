@@ -1,0 +1,18 @@
+License Information for heck v0.5.0
+==================================================
+
+Crate: heck
+Version: 0.5.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/withoutboats/heck
+Authors: N/A
+
+Description:
+heck is a case conversion library.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/heck
+- The LICENSE or LICENSE-* files in the repository

@@ -1,0 +1,18 @@
+License Information for typenum v1.18.0
+==================================================
+
+Crate: typenum
+Version: 1.18.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/paholg/typenum
+Authors: Paho Lurie-Gregg <paho@paholg.com>|Andre Bogus <bogusandre@gmail.com>
+
+Description:
+Typenum is a Rust library for type-level numbers evaluated at     compile time. It currently supports bits, unsigned integers, and signed     integers. It also provides a type-level array of type-level numbers, but its     implementation is incomplete.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/typenum
+- The LICENSE or LICENSE-* files in the repository

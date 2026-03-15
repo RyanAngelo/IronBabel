@@ -1,0 +1,18 @@
+License Information for security-framework-sys v2.17.0
+==================================================
+
+Crate: security-framework-sys
+Version: 2.17.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/kornelski/rust-security-framework
+Authors: Steven Fackler <sfackler@gmail.com>|Kornel <kornel@geekhood.net>
+
+Description:
+Apple `Security.framework` low-level FFI bindings
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/security-framework-sys
+- The LICENSE or LICENSE-* files in the repository

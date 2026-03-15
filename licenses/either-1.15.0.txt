@@ -1,0 +1,18 @@
+License Information for either v1.15.0
+==================================================
+
+Crate: either
+Version: 1.15.0
+License: Apache-2.0 OR MIT
+Repository: https://github.com/rayon-rs/either
+Authors: bluss
+
+Description:
+The enum `Either` with variants `Left` and `Right` is a general purpose sum type with two cases.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/either
+- The LICENSE or LICENSE-* files in the repository

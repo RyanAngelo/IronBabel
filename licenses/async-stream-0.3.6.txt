@@ -1,0 +1,18 @@
+License Information for async-stream v0.3.6
+==================================================
+
+Crate: async-stream
+Version: 0.3.6
+License: MIT
+Repository: https://github.com/tokio-rs/async-stream
+Authors: Carl Lerche <me@carllerche.com>
+
+Description:
+Asynchronous streams using async & await notation
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/async-stream
+- The LICENSE or LICENSE-* files in the repository

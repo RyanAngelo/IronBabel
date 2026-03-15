@@ -1,0 +1,18 @@
+License Information for darling v0.23.0
+==================================================
+
+Crate: darling
+Version: 0.23.0
+License: MIT
+Repository: https://github.com/TedDriggs/darling
+Authors: Ted Driggs <ted.driggs@outlook.com>
+
+Description:
+A proc-macro library for reading attributes into structs when implementing custom derives.
+
+==================================================
+
+For the full license text, please refer to:
+- The repository URL above
+- https://crates.io/crates/darling
+- The LICENSE or LICENSE-* files in the repository
