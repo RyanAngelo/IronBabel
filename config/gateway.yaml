@@ -18,19 +18,46 @@ protocols:
     settings:
       broker_url: "tcp://localhost:1883"
       client_id: "iron-babel-mqtt"
+
+# HTTP proxy routes — upstream must be running (test script starts mock servers)
 routes:
   - path: "/api/v1"
     target: "http://127.0.0.1:9000"
     methods: ["GET", "POST", "PUT", "DELETE"]
     timeout_secs: 30
     strip_prefix: false
+
   - path: "/api"
     target: "http://127.0.0.1:9001"
     methods: ["GET", "POST"]
     timeout_secs: 30
     strip_prefix: false
+
   - path: "/health"
     target: "http://127.0.0.1:9000"
     methods: []
     timeout_secs: 5
     strip_prefix: false
+
+  # ZMQ REQ/REP — gateway sends a frame and waits for the upstream REP reply.
+  # The test script starts a ZMQ REP echo server on :5555.
+  - path: "/zmq/orders"
+    target: "zmq://127.0.0.1:5555"
+    methods: ["POST"]
+    zmq_pattern: "req_rep"
+    timeout_secs: 10
+
+  # ZMQ PUSH — gateway fires a frame and returns 202 immediately.
+  # The test script starts a ZMQ PULL receiver on :5556.
+  - path: "/zmq/events"
+    target: "zmq://127.0.0.1:5556"
+    methods: ["POST"]
+    zmq_pattern: "push"
+    timeout_secs: 10
+
+# ZMQ → HTTP listeners — gateway binds a PULL socket and forwards each
+# received frame as an HTTP POST to the configured target.
+# The test script pushes a ZMQ message to :5557 to exercise this path.
+zmq_listeners:
+  - listen: "zmq://127.0.0.1:5557"
+    target: "http://127.0.0.1:9000/zmq-webhook"

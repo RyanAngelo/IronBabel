@@ -24,6 +24,7 @@ pub fn create_test_config() -> GatewayConfig {
             },
         ],
         routes: vec![],
+        zmq_listeners: vec![],
     }
 }
 
@@ -39,5 +40,6 @@ pub fn create_minimal_test_config() -> GatewayConfig {
             },
         ],
         routes: vec![],
+        zmq_listeners: vec![],
     }
 } 

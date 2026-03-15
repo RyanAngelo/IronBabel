@@ -4,6 +4,7 @@
 //! between different communication protocols, enabling seamless service communication
 //! in heterogeneous environments.
 
+pub mod admin;
 pub mod config;
 pub mod core;
 pub mod error;

@@ -4,9 +4,10 @@ use std::sync::Arc;
 use crate::error::Result;
 use crate::protocols::Protocol;
 
-pub mod http;
 pub mod grpc;
 pub mod graphql;
+pub mod http;
+pub mod zmq;
 
 #[async_trait]
 pub trait ProtocolGateway: Send + Sync {

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IronBabel — Gateway Dashboard</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+  <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3e;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --accent: #6366f1;
+      --accent-dim: #4f52c5;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 13px;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ── */
+    nav {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.5rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    nav .logo { font-size: 1rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; }
+    nav .spacer { flex: 1; }
+    #health-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    #health-badge.ok { border-color: var(--green); color: var(--green); }
+    #health-badge.err { border-color: var(--red); color: var(--red); }
+    #health-badge .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── Layout ── */
+    main { padding: 1.5rem; max-width: 1400px; margin: 0 auto; }
+
+    h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.75rem; }
+
+    /* ── Stat cards ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+    }
+    .card .label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .card .value { font-size: 1.6rem; font-weight: 700; margin-top: 0.25rem; line-height: 1.1; }
+    .card .sub { font-size: 10px; color: var(--muted); margin-top: 0.2rem; }
+
+    /* ── Charts ── */
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 700px) { .charts { grid-template-columns: 1fr; } }
+    .chart-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .chart-box canvas { width: 100% !important; height: 140px !important; }
+
+    /* ── Tables ── */
+    .section { margin-bottom: 1.5rem; }
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 320px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--bg); position: sticky; top: 0; }
+    th, td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    td { font-size: 12px; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.03); }
+
+    .badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-2 { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-3 { background: rgba(99,102,241,0.15); color: var(--accent); }
+    .badge-4 { background: rgba(245,158,11,0.2); color: var(--yellow); }
+    .badge-5 { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    /* ── Live log ── */
+    #live-log tbody tr { animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
+
+    .method { font-weight: 700; color: var(--accent); }
+    .err-cell { color: var(--red); font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">&#9889; IronBabel</span>
+  <span class="spacer"></span>
+  <div id="health-badge"
+       hx-get="/admin/api/health"
+       hx-trigger="load, every 5s"
+       hx-swap="outerHTML"
+       hx-target="#health-badge">
+    <span class="dot"></span> loading…
+  </div>
+</nav>
+
+<main>
+
+  <!-- ── Stat cards ── -->
+  <h2>Overview</h2>
+  <div id="metrics-cards"
+       class="cards"
+       hx-get="/admin/api/metrics"
+       hx-trigger="load, every 2s"
+       hx-swap="innerHTML">
+    <div class="card"><div class="label">Total Requests</div><div class="value">—</div></div>
+    <div class="card"><div class="label">RPS</div><div class="value">—</div></div>
+    <div class="card"><div class="label">Error Rate</div><div class="value">—</div></div>
+    <div class="card"><div class="label">p95 Latency</div><div class="value">—</div></div>
+  </div>
+
+  <!-- ── Sparkline charts ── -->
+  <div class="charts">
+    <div class="chart-box">
+      <h2>Requests / second (60s)</h2>
+      <canvas id="rps-chart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h2>Avg latency ms (60s)</h2>
+      <canvas id="lat-chart"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Routes table ── -->
+  <div class="section">
+    <h2>Routes</h2>
+    <div class="table-wrap">
+      <table id="routes-table">
+        <thead>
+          <tr>
+            <th>Path</th><th>Target</th><th>Methods</th><th>Requests</th>
+            <th>Errors</th><th>Avg Lat ms</th><th>Timeout</th>
+          </tr>
+        </thead>
+        <tbody hx-get="/admin/api/routes"
+               hx-trigger="load, every 10s"
+               hx-swap="innerHTML">
+          <tr><td colspan="7" style="color:var(--muted)">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── Live request log (SSE) ── -->
+  <div class="section">
+    <h2>Live Request Log</h2>
+    <div class="table-wrap">
+      <table id="live-log">
+        <thead>
+          <tr>
+            <th>#</th><th>Time</th><th>Method</th><th>Path</th>
+            <th>Route</th><th>Status</th><th>Latency ms</th><th>Target</th><th>Error</th>
+          </tr>
+        </thead>
+        <tbody id="live-log-body"
+               hx-ext="sse"
+               sse-connect="/admin/events"
+               sse-swap="beforeend"
+               hx-swap="beforeend">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── Inject health badge HTML from JSON ──────────────────────────────────────
+document.body.addEventListener('htmx:beforeSwap', function(e) {
+  if (e.detail.pathInfo && e.detail.pathInfo.requestPath === '/admin/api/health') {
+    try {
+      const d = JSON.parse(e.detail.serverResponse);
+      const ok = d.status === 'ok';
+      e.detail.serverResponse =
+        `<div id="health-badge" class="${ok ? 'ok' : 'err'}"
+              hx-get="/admin/api/health"
+              hx-trigger="every 5s"
+              hx-swap="outerHTML"
+              hx-target="#health-badge">
+          <span class="dot"></span>
+          ${ok ? 'healthy' : 'degraded'} &nbsp;·&nbsp; up ${fmtUptime(d.uptime_secs)} &nbsp;·&nbsp; v${d.version} &nbsp;·&nbsp; ${d.active_routes} routes
+         </div>`;
+      htmx.process(e.detail.target);
+    } catch(_) {}
+  }
+});
+
+function fmtUptime(s) {
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s/60) + 'm ' + (s%60) + 's';
+  return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm';
+}
+
+// ── Metrics cards + charts ───────────────────────────────────────────────────
+let rpsChart, latChart;
+
+function initCharts() {
+  const opts = (label, color) => ({
+    type: 'line',
+    data: { labels: [], datasets: [{ label, data: [], borderColor: color,
+      backgroundColor: color + '22', borderWidth: 1.5,
+      pointRadius: 0, fill: true, tension: 0.3 }] },
+    options: {
+      animation: false,
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { display: true, ticks: { color: '#64748b', font: { size: 10 } },
+             grid: { color: '#2a2d3e' } }
+      }
+    }
+  });
+  rpsChart = new Chart(document.getElementById('rps-chart'), opts('RPS', '#6366f1'));
+  latChart = new Chart(document.getElementById('lat-chart'), opts('Lat ms', '#22c55e'));
+}
+
+function updateCharts(rps_series, lat_series) {
+  function apply(chart, series) {
+    chart.data.labels = series.map(p => '');
+    chart.data.datasets[0].data = series.map(p => p.value);
+    chart.update('none');
+  }
+  apply(rpsChart, rps_series);
+  apply(latChart, lat_series);
+}
+
+document.body.addEventListener('htmx:beforeSwap', function(e) {
+  if (e.detail.pathInfo && e.detail.pathInfo.requestPath === '/admin/api/metrics') {
+    try {
+      const d = JSON.parse(e.detail.serverResponse);
+      const errPct = (d.error_rate * 100).toFixed(1);
+      e.detail.serverResponse = `
+        <div class="card"><div class="label">Total Requests</div>
+          <div class="value">${fmtNum(d.total_requests)}</div></div>
+        <div class="card"><div class="label">RPS</div>
+          <div class="value">${d.rps.toFixed(2)}</div></div>
+        <div class="card"><div class="label">Error Rate</div>
+          <div class="value" style="color:${errPct > 5 ? 'var(--red)' : 'var(--text)'}">${errPct}%</div></div>
+        <div class="card"><div class="label">p95 Latency</div>
+          <div class="value">${d.p95_latency_ms.toFixed(0)}<span style="font-size:.9rem;color:var(--muted)">ms</span></div>
+          <div class="sub">p50 ${d.p50_latency_ms.toFixed(0)}ms &nbsp; p99 ${d.p99_latency_ms.toFixed(0)}ms</div></div>
+      `;
+      updateCharts(d.rps_series, d.latency_series);
+    } catch(_) {}
+  }
+});
+
+function fmtNum(n) {
+  if (n >= 1e6) return (n/1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+  return n.toString();
+}
+
+// ── Routes table swap ────────────────────────────────────────────────────────
+document.body.addEventListener('htmx:beforeSwap', function(e) {
+  if (e.detail.pathInfo && e.detail.pathInfo.requestPath === '/admin/api/routes') {
+    try {
+      const rows = JSON.parse(e.detail.serverResponse);
+      e.detail.serverResponse = rows.map(r => `
+        <tr>
+          <td><code>${r.path}</code></td>
+          <td><code>${r.target}</code></td>
+          <td>${(r.methods.length ? r.methods : ['*']).map(m => `<span class="badge badge-3">${m}</span>`).join(' ')}</td>
+          <td>${fmtNum(r.total_requests)}</td>
+          <td style="color:${r.error_count > 0 ? 'var(--red)' : 'inherit'}">${fmtNum(r.error_count)}</td>
+          <td>${r.avg_latency_ms.toFixed(1)}</td>
+          <td>${r.timeout_secs ?? 30}s</td>
+        </tr>
+      `).join('') || '<tr><td colspan="7" style="color:var(--muted)">No routes configured</td></tr>';
+    } catch(_) {}
+  }
+});
+
+// ── SSE live log ─────────────────────────────────────────────────────────────
+// HTMX SSE sse-swap appends the raw SSE data as text; we intercept with a
+// custom event handler instead and build rows ourselves.
+document.addEventListener('htmx:sseMessage', function(e) {
+  try {
+    const d = JSON.parse(e.detail.data);
+    const tbody = document.getElementById('live-log-body');
+    const status = d.status_code;
+    const cls = status >= 500 ? 'badge-5' : status >= 400 ? 'badge-4' : status >= 300 ? 'badge-3' : 'badge-2';
+    const time = new Date(d.timestamp_ms).toLocaleTimeString();
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:var(--muted)">${d.id}</td>
+      <td style="color:var(--muted)">${time}</td>
+      <td class="method">${d.method}</td>
+      <td><code>${d.path}</code></td>
+      <td style="color:var(--muted)">${d.matched_route ?? '—'}</td>
+      <td><span class="badge ${cls}">${status}</span></td>
+      <td>${d.latency_ms}</td>
+      <td style="color:var(--muted);font-size:11px">${d.upstream_target || '—'}</td>
+      <td class="err-cell">${d.error ?? ''}</td>
+    `;
+    tbody.prepend(tr);
+    // Cap visible rows at 100
+    while (tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
+  } catch(_) {}
+});
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  initCharts();
+  htmx.process(document.body);
+});
+</script>
+</body>
+</html>

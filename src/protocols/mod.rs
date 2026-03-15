@@ -2,11 +2,12 @@ use async_trait::async_trait;
 
 use crate::error::Result;
 
-pub mod http;
 pub mod grpc;
 pub mod graphql;
+pub mod http;
 pub mod mqtt;
 pub mod ws;
+pub mod zmq;
 
 #[async_trait]
 pub trait Protocol: Send + Sync {

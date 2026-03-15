@@ -15,6 +15,7 @@ fn make_route(p: &str, target: &str) -> RouteConfig {
         methods: vec![],
         timeout_secs: Some(5),
         strip_prefix: None,
+        zmq_pattern: None,
     }
 }
 
@@ -61,6 +62,7 @@ fn router_returns_none_for_wrong_method() {
         methods: vec!["GET".to_string()],
         timeout_secs: None,
         strip_prefix: None,
+        zmq_pattern: None,
     }]);
     assert!(router.route("DELETE", "/api/resource").is_none());
 }
@@ -73,6 +75,7 @@ fn router_method_match_is_case_insensitive() {
         methods: vec!["get".to_string()],
         timeout_secs: None,
         strip_prefix: None,
+        zmq_pattern: None,
     }]);
     assert!(router.route("GET", "/api/users").is_some());
 }

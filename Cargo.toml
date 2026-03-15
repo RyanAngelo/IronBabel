@@ -8,7 +8,9 @@ license = "MIT"
 
 [dependencies]
 # Core async runtime
-tokio = { version = "1.45", features = ["rt-multi-thread", "signal", "macros", "fs"] }
+tokio = { version = "1.45", features = ["rt-multi-thread", "signal", "macros", "fs", "time"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+zeromq = "0.4"
 
 # HTTP server and client
 axum = "0.8"

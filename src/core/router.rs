@@ -65,6 +65,7 @@ mod tests {
             methods: methods.iter().map(|s| s.to_string()).collect(),
             timeout_secs: None,
             strip_prefix: None,
+            zmq_pattern: None,
         }
     }
 
