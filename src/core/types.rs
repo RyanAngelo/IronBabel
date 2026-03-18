@@ -16,6 +16,10 @@ pub struct RequestMetadata {
     pub path: Option<String>,
     pub headers: Vec<(String, String)>,
     pub timeout: Option<Duration>,
+    /// Verified remote IP address of the connecting client (from the TCP socket,
+    /// not from headers). Used for rate limiting so clients cannot spoof their
+    /// identity by manipulating `X-Forwarded-For`.
+    pub remote_addr: Option<String>,
 }
 
 /// Represents a response from the gateway

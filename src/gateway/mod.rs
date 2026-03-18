@@ -7,6 +7,7 @@ use crate::protocols::Protocol;
 pub mod grpc;
 pub mod graphql;
 pub mod http;
+pub mod ws;
 pub mod zmq;
 
 #[async_trait]

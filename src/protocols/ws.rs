@@ -21,13 +21,13 @@ impl Protocol for WebSocketProtocol {
         &self.name
     }
 
+    /// WebSocket frames are passed through as raw bytes.
     async fn encode(&self, data: Vec<u8>) -> Result<Vec<u8>> {
-        // TODO: Implement WebSocket encoding
         Ok(data)
     }
 
+    /// WebSocket frames are passed through as raw bytes.
     async fn decode(&self, data: Vec<u8>) -> Result<Vec<u8>> {
-        // TODO: Implement WebSocket decoding
         Ok(data)
     }
-} 
+}

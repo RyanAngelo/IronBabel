@@ -30,6 +30,78 @@ impl GatewayConfig {
         apply_env_overrides(&mut config);
         Ok(config)
     }
+
+    /// Validates the loaded configuration, returning a descriptive error if
+    /// any field has an obviously invalid value.
+    ///
+    /// This catches misconfiguration early — at startup — rather than
+    /// surfacing confusing errors on the first request.
+    pub fn validate(&self) -> Result<()> {
+        use crate::error::Error;
+
+        if self.host.trim().is_empty() {
+            return Err(Error::Config(
+                "host must not be empty".to_string(),
+            ));
+        }
+
+        if self.port == 0 {
+            return Err(Error::Config(
+                "port must be between 1 and 65535".to_string(),
+            ));
+        }
+
+        for route in &self.routes {
+            if route.path.is_empty() {
+                return Err(Error::Config(
+                    "route path must not be empty".to_string(),
+                ));
+            }
+            if !route.path.starts_with('/') {
+                return Err(Error::Config(format!(
+                    "route path '{}' must start with '/'",
+                    route.path
+                )));
+            }
+            match &route.transport {
+                TransportConfig::Http(cfg) => {
+                    validate_http_url(&cfg.url, &route.path)?;
+                }
+                TransportConfig::GraphQL(cfg) => {
+                    validate_http_url(&cfg.url, &route.path)?;
+                }
+                TransportConfig::Grpc(cfg) => {
+                    validate_http_url(&cfg.url, &route.path)?;
+                }
+                TransportConfig::WebSocket(cfg) => {
+                    validate_ws_url(&cfg.url, &route.path)?;
+                }
+                TransportConfig::Zmq(cfg) => {
+                    if cfg.address.trim().is_empty() {
+                        return Err(Error::Config(format!(
+                            "ZMQ route '{}': address must not be empty",
+                            route.path
+                        )));
+                    }
+                }
+            }
+        }
+
+        for listener in &self.listeners {
+            match listener {
+                ListenerConfig::ZmqPull(cfg) => {
+                    if cfg.bind.trim().is_empty() {
+                        return Err(Error::Config(
+                            "ZMQ pull listener: bind address must not be empty".to_string(),
+                        ));
+                    }
+                    validate_http_url(&cfg.forward_to, "zmq_pull listener forward_to")?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -73,6 +145,9 @@ pub struct RouteConfig {
 pub enum TransportConfig {
     Http(HttpTransportConfig),
     Zmq(ZmqTransportConfig),
+    GraphQL(GraphQLTransportConfig),
+    Grpc(GrpcTransportConfig),
+    WebSocket(WebSocketTransportConfig),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -102,6 +177,55 @@ pub struct ZmqTransportConfig {
     /// Topic prefix for `pub_sub` pattern. Ignored by other patterns.
     #[serde(default)]
     pub topic: Option<String>,
+}
+
+/// Configuration for a GraphQL upstream route.
+///
+/// Requests are always forwarded as HTTP POST with `Content-Type: application/json`.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GraphQLTransportConfig {
+    /// Target GraphQL endpoint URL, e.g. `"http://api:4000/graphql"`.
+    ///
+    /// SECURITY: must be a trusted internal address — request data can never
+    /// alter the destination URL (SSRF mitigation).
+    pub url: String,
+    /// Request timeout in seconds. Defaults to 30.
+    #[serde(default = "default_timeout_secs")]
+    pub timeout_secs: u64,
+}
+
+/// Configuration for a gRPC upstream route.
+///
+/// Requests are forwarded over HTTP/2 with `Content-Type: application/grpc`.
+/// The request body must be a gRPC length-prefixed frame (5-byte header +
+/// protobuf payload); use `GrpcProtocol::encode` to add the framing.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct GrpcTransportConfig {
+    /// Base URL of the upstream gRPC server, e.g. `"http://service:50051"`.
+    ///
+    /// SECURITY: must be a trusted internal address — request data can never
+    /// alter the destination URL (SSRF mitigation).
+    pub url: String,
+    /// Request timeout in seconds. Defaults to 30.
+    #[serde(default = "default_timeout_secs")]
+    pub timeout_secs: u64,
+}
+
+/// Configuration for a WebSocket upstream route.
+///
+/// Incoming WebSocket upgrade requests are proxied bidirectionally to the
+/// backend WebSocket server. `ws://`, `wss://`, `http://`, and `https://`
+/// URL schemes are all accepted.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct WebSocketTransportConfig {
+    /// Backend WebSocket URL, e.g. `"ws://realtime:8080"` or `"wss://host/ws"`.
+    ///
+    /// SECURITY: must be a trusted internal address — request data can never
+    /// alter the destination URL (SSRF mitigation).
+    pub url: String,
+    /// Connection timeout in seconds. Defaults to 30.
+    #[serde(default = "default_timeout_secs")]
+    pub timeout_secs: u64,
 }
 
 /// ZMQ messaging pattern for a route.
@@ -189,6 +313,46 @@ impl Default for RateLimitConfig {
 fn default_timeout_secs() -> u64 { 30 }
 fn default_requests_per_window() -> u32 { 100 }
 fn default_window_secs() -> u64 { 60 }
+
+// ---------------------------------------------------------------------------
+// Validation helpers
+// ---------------------------------------------------------------------------
+
+fn validate_http_url(url: &str, context: &str) -> crate::error::Result<()> {
+    if url.trim().is_empty() {
+        return Err(crate::error::Error::Config(format!(
+            "{}: URL must not be empty",
+            context
+        )));
+    }
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return Err(crate::error::Error::Config(format!(
+            "{}: URL '{}' must start with http:// or https://",
+            context, url
+        )));
+    }
+    Ok(())
+}
+
+fn validate_ws_url(url: &str, context: &str) -> crate::error::Result<()> {
+    if url.trim().is_empty() {
+        return Err(crate::error::Error::Config(format!(
+            "{}: URL must not be empty",
+            context
+        )));
+    }
+    let ok = url.starts_with("ws://")
+        || url.starts_with("wss://")
+        || url.starts_with("http://")
+        || url.starts_with("https://");
+    if !ok {
+        return Err(crate::error::Error::Config(format!(
+            "{}: WebSocket URL '{}' must start with ws://, wss://, http://, or https://",
+            context, url
+        )));
+    }
+    Ok(())
+}
 
 // ---------------------------------------------------------------------------
 // Sub-modules

@@ -46,4 +46,19 @@ impl MiddlewareChain {
         }
         Ok(response)
     }
+
+    /// Returns the configured rate-limit window in seconds, if any rate-limit
+    /// middleware is present and enabled. Used to populate the `Retry-After`
+    /// response header on 429 responses.
+    pub fn rate_limit_window_secs(&self) -> Option<u64> {
+        self.middlewares.iter().find_map(|m| {
+            let cfg = m.config();
+            if !cfg.enabled {
+                return None;
+            }
+            cfg.settings
+                .get("window_secs")
+                .and_then(|v| v.as_u64())
+        })
+    }
 }

@@ -107,6 +107,15 @@ pub async fn admin_routes(State(state): State<AppState>) -> Json<Vec<RouteInfo>>
                 TransportConfig::Zmq(cfg) => {
                     ("zmq".to_string(), cfg.address.clone(), cfg.timeout_secs)
                 }
+                TransportConfig::GraphQL(cfg) => {
+                    ("graphql".to_string(), cfg.url.clone(), cfg.timeout_secs)
+                }
+                TransportConfig::Grpc(cfg) => {
+                    ("grpc".to_string(), cfg.url.clone(), cfg.timeout_secs)
+                }
+                TransportConfig::WebSocket(cfg) => {
+                    ("websocket".to_string(), cfg.url.clone(), cfg.timeout_secs)
+                }
             };
             RouteInfo {
                 path: r.path.clone(),
