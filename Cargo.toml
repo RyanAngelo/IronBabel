@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Ryan Angelo <ryanangelo@icloud.com>"]
 description = "A cross-protocol API gateway for seamless service communication"
 license = "MIT"
+default-run = "iron-babel"
 
 [dependencies]
 # Core async runtime
@@ -51,3 +52,7 @@ wiremock = "0.6.5"
 [[bin]]
 name = "create_licenses"
 path = "scripts/create_licenses.rs"
+
+[[bin]]
+name = "load_gen"
+path = "src/bin/load_gen.rs"
