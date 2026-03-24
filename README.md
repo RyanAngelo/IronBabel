@@ -13,8 +13,14 @@ A powerful cross-protocol API gateway written in Rust that enables seamless comm
 - Automatic schema discovery and generation
 - Request/response transformation
 - Developer-friendly configuration
-- Comprehensive monitoring and metrics
+- Comprehensive monitoring and metrics via built-in admin dashboard
 - Advanced features like rate limiting and circuit breaking
+
+## Monitoring Dashboard
+
+![IronBabel Monitoring Dashboard](https://www.ryanangelo.com/projects/iron-babel/screenshots/monitoring-dashboard.png)
+
+The built-in admin dashboard is available at `http://<host>:<port>/admin/` and provides real-time request metrics, latency percentiles, error rates, and per-route stats.
 
 ## Project Structure
 
