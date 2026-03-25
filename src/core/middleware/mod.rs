@@ -62,3 +62,9 @@ impl MiddlewareChain {
         })
     }
 }
+
+impl Default for MiddlewareChain {
+    fn default() -> Self {
+        Self::new()
+    }
+}

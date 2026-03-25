@@ -3,26 +3,28 @@ use std::time::Duration;
 use async_trait::async_trait;
 use axum::{
     extract::{ConnectInfo, Request, State},
-    http::StatusCode,
+    http::{HeaderName, HeaderValue, StatusCode},
     response::{IntoResponse, Response},
     routing::any,
 };
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
-use tokio::sync::Notify;
+use tokio::sync::{Mutex, Notify};
+use tokio::task::JoinHandle;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use crate::{error::Result, protocols::Protocol};
 use crate::protocols::{
-    http::HttpProtocol, grpc::GrpcProtocol, graphql::GraphQLProtocol,
-    mqtt::MqttProtocol, ws::WebSocketProtocol,
+    http::HttpProtocol, grpc::GrpcProtocol, graphql::GraphQLProtocol, mqtt::MqttProtocol,
+    ws::WebSocketProtocol,
 };
 use crate::gateway::graphql::GraphQLGateway;
 use crate::gateway::grpc::GrpcGateway;
+use crate::gateway::mqtt::MqttGateway;
 use crate::admin::store::MetricsStore;
 use crate::config::{
-    GrpcTransportConfig, GraphQLTransportConfig, ListenerConfig,
+    GrpcTransportConfig, GraphQLTransportConfig, ListenerConfig, MqttTransportConfig,
     TransportConfig, ZmqPattern, ZmqTransportConfig,
 };
 use crate::gateway::zmq::ZmqGateway;
@@ -40,9 +42,18 @@ pub struct AppState {
     pub http_gateway: Arc<crate::gateway::http::HttpGateway>,
     pub graphql_gateway: Arc<GraphQLGateway>,
     pub grpc_gateway: Arc<GrpcGateway>,
+    pub mqtt_gateway: Arc<MqttGateway>,
     pub metrics: Arc<MetricsStore>,
     pub config_routes: Vec<crate::config::RouteConfig>,
     pub middleware: Arc<MiddlewareChain>,
+}
+
+#[derive(Default)]
+struct RuntimeHandles {
+    running: bool,
+    server_handle: Option<JoinHandle<()>>,
+    metrics_handle: Option<JoinHandle<()>>,
+    listener_handles: Vec<JoinHandle<()>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -63,14 +74,14 @@ async fn handle_request(
     if crate::protocols::http::path_contains_traversal(&path) {
         let latency_ms = start.elapsed().as_millis() as u64;
         state.metrics.record_request(&method_str, &path, None, "", 400, latency_ms, None).await;
-        return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
+        return finalize_into_response(&state, (StatusCode::BAD_REQUEST, "Invalid path")).await;
     }
 
     let route = match state.router.route(&method_str, &path) {
         None => {
             let latency_ms = start.elapsed().as_millis() as u64;
             state.metrics.record_request(&method_str, &path, None, "", 404, latency_ms, None).await;
-            return (StatusCode::NOT_FOUND, "Not found").into_response();
+            return finalize_into_response(&state, (StatusCode::NOT_FOUND, "Not found")).await;
         }
         Some(r) => r.clone(),
     };
@@ -89,12 +100,20 @@ async fn handle_request(
                 let timeout_secs = cfg.timeout_secs;
                 let latency_ms = start.elapsed().as_millis() as u64;
                 state.metrics.record_request(&method_str, &path, matched_route, &backend_url, 101, latency_ms, None).await;
-                return crate::gateway::ws::handle_websocket_upgrade(upgrade, backend_url, timeout_secs);
+                return finalize_response(
+                    &state,
+                    crate::gateway::ws::handle_websocket_upgrade(upgrade, backend_url, timeout_secs),
+                )
+                .await;
             }
             Err(_) => {
                 let latency_ms = start.elapsed().as_millis() as u64;
                 state.metrics.record_request(&method_str, &path, matched_route, &cfg.url, 426, latency_ms, None).await;
-                return (StatusCode::UPGRADE_REQUIRED, "WebSocket upgrade required").into_response();
+                return finalize_into_response(
+                    &state,
+                    (StatusCode::UPGRADE_REQUIRED, "WebSocket upgrade required"),
+                )
+                .await;
             }
         }
     }
@@ -116,7 +135,8 @@ async fn handle_request(
             let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
             state.metrics.record_request(&method_str, &path, matched_route, &target, 413, latency_ms, None).await;
-            return (StatusCode::PAYLOAD_TOO_LARGE, "Body too large").into_response();
+            return finalize_into_response(&state, (StatusCode::PAYLOAD_TOO_LARGE, "Body too large"))
+                .await;
         }
     };
 
@@ -140,7 +160,7 @@ async fn handle_request(
             let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
             state.metrics.record_request(&method_str, &path, matched_route, &target, 401, latency_ms, None).await;
-            return (StatusCode::UNAUTHORIZED, msg).into_response();
+            return finalize_into_response(&state, (StatusCode::UNAUTHORIZED, msg)).await;
         }
         Err(crate::error::Error::RateLimited) => {
             let latency_ms = start.elapsed().as_millis() as u64;
@@ -151,22 +171,25 @@ async fn handle_request(
                 .unwrap_or(window_secs)
                 .to_string();
             state.metrics.record_request(&method_str, &path, matched_route, &target, 429, latency_ms, None).await;
-            return (
+            return finalize_into_response(&state, (
                 StatusCode::TOO_MANY_REQUESTS,
                 [(axum::http::header::RETRY_AFTER, retry_after.as_str())],
                 "Too many requests",
-            ).into_response();
+            ))
+            .await;
         }
         Err(e) => {
             tracing::error!("Middleware error: {}", e);
             let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
             state.metrics.record_request(&method_str, &path, matched_route, &target, 500, latency_ms, Some(e.to_string())).await;
-            return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+            return finalize_into_response(&state, StatusCode::INTERNAL_SERVER_ERROR).await;
         }
     };
 
-    let headers = core_req.metadata.headers;
+    let remote_ip = core_req.metadata.remote_addr.as_deref().unwrap_or_default();
+    let mut headers = core_req.metadata.headers;
+    set_forwarded_for(&mut headers, remote_ip);
     let body_bytes = core_req.data;
 
     // Dispatch on transport type.
@@ -177,7 +200,8 @@ async fn handle_request(
                 Err(_) => {
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(&method_str, &path, matched_route, &cfg.url, 405, latency_ms, None).await;
-                    return (StatusCode::METHOD_NOT_ALLOWED, "Invalid method").into_response();
+                    return finalize_into_response(&state, (StatusCode::METHOD_NOT_ALLOWED, "Invalid method"))
+                        .await;
                 }
             };
 
@@ -207,15 +231,19 @@ async fn handle_request(
                     for (name, value) in resp_headers {
                         builder = builder.header(name, value);
                     }
-                    builder
+                    finalize_response(
+                        &state,
+                        builder
                         .body(axum::body::Body::from(resp_body))
-                        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+                        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+                    )
+                    .await
                 }
                 Err(e) => {
                     tracing::error!("Proxy error: {}", e);
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(&method_str, &path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
-                    (StatusCode::BAD_GATEWAY, "Bad gateway").into_response()
+                    finalize_into_response(&state, (StatusCode::BAD_GATEWAY, "Bad gateway")).await
                 }
             }
         }
@@ -232,8 +260,80 @@ async fn handle_request(
             handle_grpc(&state, &method_str, &path, &route, cfg, headers, body_bytes, start).await
         }
 
+        TransportConfig::Mqtt(cfg) => {
+            handle_mqtt(&state, &method_str, &path, &route, cfg, body_bytes, start).await
+        }
+
         // WebSocket is handled above before body extraction.
         TransportConfig::WebSocket(_) => unreachable!(),
+    }
+}
+
+fn set_forwarded_for(headers: &mut Vec<(String, String)>, remote_addr: &str) {
+    if remote_addr.is_empty() {
+        return;
+    }
+
+    if let Some((_, value)) = headers
+        .iter_mut()
+        .find(|(name, _)| name.eq_ignore_ascii_case("x-forwarded-for"))
+    {
+        *value = remote_addr.to_string();
+    } else {
+        headers.push(("x-forwarded-for".to_string(), remote_addr.to_string()));
+    }
+}
+
+async fn finalize_into_response<T: IntoResponse>(state: &AppState, response: T) -> Response {
+    finalize_response(state, response.into_response()).await
+}
+
+async fn finalize_response(state: &AppState, response: Response) -> Response {
+    let (mut parts, body) = response.into_parts();
+    let headers = parts
+        .headers
+        .iter()
+        .filter_map(|(name, value)| {
+            value
+                .to_str()
+                .ok()
+                .map(|value| (name.as_str().to_string(), value.to_string()))
+        })
+        .collect();
+
+    let core_response = crate::core::types::Response {
+        data: vec![],
+        metadata: crate::core::types::ResponseMetadata {
+            status_code: Some(parts.status.as_u16()),
+            headers,
+            duration: None,
+        },
+    };
+
+    match state.middleware.handle_response(core_response).await {
+        Ok(core_response) => {
+            if let Some(status_code) = core_response.metadata.status_code {
+                parts.status = StatusCode::from_u16(status_code)
+                    .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+
+            parts.headers.clear();
+            for (name, value) in core_response.metadata.headers {
+                let Ok(name) = HeaderName::try_from(name) else {
+                    continue;
+                };
+                let Ok(value) = HeaderValue::from_str(&value) else {
+                    continue;
+                };
+                parts.headers.append(name, value);
+            }
+
+            Response::from_parts(parts, body)
+        }
+        Err(e) => {
+            tracing::error!("Response middleware error: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
     }
 }
 
@@ -249,6 +349,7 @@ fn transport_target(transport: &TransportConfig) -> String {
         TransportConfig::GraphQL(cfg) => cfg.url.clone(),
         TransportConfig::Grpc(cfg) => cfg.url.clone(),
         TransportConfig::WebSocket(cfg) => cfg.url.clone(),
+        TransportConfig::Mqtt(cfg) => cfg.broker_url.clone(),
     }
 }
 
@@ -260,6 +361,7 @@ fn transport_timeout(transport: &TransportConfig) -> u64 {
         TransportConfig::GraphQL(cfg) => cfg.timeout_secs,
         TransportConfig::Grpc(cfg) => cfg.timeout_secs,
         TransportConfig::WebSocket(cfg) => cfg.timeout_secs,
+        TransportConfig::Mqtt(cfg) => cfg.timeout_secs,
     }
 }
 
@@ -285,17 +387,25 @@ async fn handle_zmq(
                 Ok(resp_body) => {
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(method_str, path, matched_route, &cfg.address, 200, latency_ms, None).await;
-                    axum::response::Response::builder()
+                    finalize_response(
+                        state,
+                        axum::response::Response::builder()
                         .status(200)
                         .header("content-type", "application/octet-stream")
                         .body(axum::body::Body::from(resp_body))
-                        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+                        .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+                    )
+                    .await
                 }
                 Err(e) => {
                     tracing::error!("ZMQ REQ/REP error: {}", e);
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(method_str, path, matched_route, &cfg.address, 502, latency_ms, Some(e.to_string())).await;
-                    (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)).into_response()
+                    finalize_into_response(
+                        state,
+                        (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)),
+                    )
+                    .await
                 }
             }
         }
@@ -305,13 +415,17 @@ async fn handle_zmq(
                 Ok(()) => {
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(method_str, path, matched_route, &cfg.address, 202, latency_ms, None).await;
-                    StatusCode::ACCEPTED.into_response()
+                    finalize_into_response(state, StatusCode::ACCEPTED).await
                 }
                 Err(e) => {
                     tracing::error!("ZMQ PUSH error: {}", e);
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(method_str, path, matched_route, &cfg.address, 502, latency_ms, Some(e.to_string())).await;
-                    (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)).into_response()
+                    finalize_into_response(
+                        state,
+                        (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)),
+                    )
+                    .await
                 }
             }
         }
@@ -321,13 +435,17 @@ async fn handle_zmq(
                 Ok(()) => {
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(method_str, path, matched_route, &cfg.address, 202, latency_ms, None).await;
-                    StatusCode::ACCEPTED.into_response()
+                    finalize_into_response(state, StatusCode::ACCEPTED).await
                 }
                 Err(e) => {
                     tracing::error!("ZMQ PUB error: {}", e);
                     let latency_ms = start.elapsed().as_millis() as u64;
                     state.metrics.record_request(method_str, path, matched_route, &cfg.address, 502, latency_ms, Some(e.to_string())).await;
-                    (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)).into_response()
+                    finalize_into_response(
+                        state,
+                        (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)),
+                    )
+                    .await
                 }
             }
         }
@@ -371,16 +489,17 @@ async fn admin_middleware(
     };
 
     match state.middleware.handle_request(core_req).await {
-        Ok(_) => next.run(req).await,
+        Ok(_) => finalize_response(&state, next.run(req).await).await,
         Err(crate::error::Error::Unauthorized(msg)) => {
-            (StatusCode::UNAUTHORIZED, msg).into_response()
+            finalize_into_response(&state, (StatusCode::UNAUTHORIZED, msg)).await
         }
         Err(crate::error::Error::RateLimited) => {
-            (StatusCode::TOO_MANY_REQUESTS, "Too many requests").into_response()
+            finalize_into_response(&state, (StatusCode::TOO_MANY_REQUESTS, "Too many requests"))
+                .await
         }
         Err(e) => {
             tracing::error!("Admin middleware error: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            finalize_into_response(&state, StatusCode::INTERNAL_SERVER_ERROR).await
         }
     }
 }
@@ -412,7 +531,11 @@ async fn handle_graphql(
             tracing::warn!("GraphQL validation error: {}", e);
             let latency_ms = start.elapsed().as_millis() as u64;
             state.metrics.record_request(method_str, path, matched_route, &cfg.url, 400, latency_ms, Some(e.to_string())).await;
-            return (StatusCode::BAD_REQUEST, format!("GraphQL error: {}", e)).into_response();
+            return finalize_into_response(
+                state,
+                (StatusCode::BAD_REQUEST, format!("GraphQL error: {}", e)),
+            )
+            .await;
         }
     };
 
@@ -424,15 +547,49 @@ async fn handle_graphql(
             for (name, value) in resp_headers {
                 builder = builder.header(name, value);
             }
-            builder
+            finalize_response(
+                state,
+                builder
                 .body(axum::body::Body::from(resp_body))
-                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+            )
+            .await
         }
         Err(e) => {
             tracing::error!("GraphQL proxy error: {}", e);
             let latency_ms = start.elapsed().as_millis() as u64;
             state.metrics.record_request(method_str, path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
-            (StatusCode::BAD_GATEWAY, "Bad gateway").into_response()
+            finalize_into_response(state, (StatusCode::BAD_GATEWAY, "Bad gateway")).await
+        }
+    }
+}
+
+async fn handle_mqtt(
+    state: &AppState,
+    method_str: &str,
+    path: &str,
+    route: &crate::config::RouteConfig,
+    cfg: &MqttTransportConfig,
+    body: Vec<u8>,
+    start: std::time::Instant,
+) -> Response {
+    let matched_route = Some(route.path.clone());
+
+    match state.mqtt_gateway.publish(cfg, body).await {
+        Ok(()) => {
+            let latency_ms = start.elapsed().as_millis() as u64;
+            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 202, latency_ms, None).await;
+            finalize_into_response(state, StatusCode::ACCEPTED).await
+        }
+        Err(e) => {
+            tracing::error!("MQTT publish error: {}", e);
+            let latency_ms = start.elapsed().as_millis() as u64;
+            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 502, latency_ms, Some(e.to_string())).await;
+            finalize_into_response(
+                state,
+                (StatusCode::BAD_GATEWAY, format!("MQTT error: {}", e)),
+            )
+            .await
         }
     }
 }
@@ -464,7 +621,11 @@ async fn handle_grpc(
             tracing::warn!("gRPC encode error: {}", e);
             let latency_ms = start.elapsed().as_millis() as u64;
             state.metrics.record_request(method_str, path, matched_route, &cfg.url, 400, latency_ms, Some(e.to_string())).await;
-            return (StatusCode::BAD_REQUEST, format!("gRPC error: {}", e)).into_response();
+            return finalize_into_response(
+                state,
+                (StatusCode::BAD_REQUEST, format!("gRPC error: {}", e)),
+            )
+            .await;
         }
     };
 
@@ -474,7 +635,7 @@ async fn handle_grpc(
             // Strip gRPC framing on successful responses. For non-2xx
             // responses the body is typically an HTTP-level error message
             // (not a gRPC frame), so pass it through as-is.
-            let decoded_body = if status >= 200 && status < 300 {
+            let decoded_body = if (200..300).contains(&status) {
                 grpc_proto.decode(resp_body.clone()).await.unwrap_or(resp_body)
             } else {
                 resp_body
@@ -485,15 +646,19 @@ async fn handle_grpc(
             for (name, value) in resp_headers {
                 builder = builder.header(name, value);
             }
-            builder
+            finalize_response(
+                state,
+                builder
                 .body(axum::body::Body::from(decoded_body))
-                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response()),
+            )
+            .await
         }
         Err(e) => {
             tracing::error!("gRPC proxy error: {}", e);
             let latency_ms = start.elapsed().as_millis() as u64;
             state.metrics.record_request(method_str, path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
-            (StatusCode::BAD_GATEWAY, "Bad gateway").into_response()
+            finalize_into_response(state, (StatusCode::BAD_GATEWAY, "Bad gateway")).await
         }
     }
 }
@@ -510,16 +675,25 @@ pub struct DefaultGateway {
     http_gateway: Arc<crate::gateway::http::HttpGateway>,
     graphql_gateway: Arc<GraphQLGateway>,
     grpc_gateway: Arc<GrpcGateway>,
+    mqtt_gateway: Arc<MqttGateway>,
     metrics: Arc<MetricsStore>,
     config_routes: Vec<crate::config::RouteConfig>,
     listeners: Vec<ListenerConfig>,
     middleware: Arc<MiddlewareChain>,
     shutdown: Arc<Notify>,
+    runtime: Mutex<RuntimeHandles>,
 }
 
 #[async_trait]
 impl Gateway for DefaultGateway {
     async fn start(&self) -> Result<()> {
+        let mut runtime = self.runtime.lock().await;
+        if runtime.running {
+            return Err(crate::error::Error::Unknown(
+                "Gateway is already running".to_string(),
+            ));
+        }
+
         let addr = format!("{}:{}", self.host, self.port);
         let listener = TcpListener::bind(&addr).await.map_err(crate::error::Error::Io)?;
 
@@ -531,6 +705,7 @@ impl Gateway for DefaultGateway {
             http_gateway: Arc::clone(&self.http_gateway),
             graphql_gateway: Arc::clone(&self.graphql_gateway),
             grpc_gateway: Arc::clone(&self.grpc_gateway),
+            mqtt_gateway: Arc::clone(&self.mqtt_gateway),
             metrics: Arc::clone(&self.metrics),
             config_routes: self.config_routes.clone(),
             middleware: Arc::clone(&self.middleware),
@@ -538,23 +713,40 @@ impl Gateway for DefaultGateway {
 
         // 1-second tick task for admin dashboard time buckets.
         let metrics_tick = Arc::clone(&self.metrics);
-        tokio::spawn(async move {
+        let metrics_shutdown = Arc::clone(&self.shutdown);
+        runtime.metrics_handle = Some(tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(1));
             loop {
-                interval.tick().await;
-                metrics_tick.tick().await;
+                tokio::select! {
+                    _ = metrics_shutdown.notified() => break,
+                    _ = interval.tick() => metrics_tick.tick().await,
+                }
             }
-        });
+        }));
 
         // Inbound listener tasks (one per entry in `listeners`).
         for listener_cfg in &self.listeners {
             match listener_cfg {
                 ListenerConfig::ZmqPull(cfg) => {
                     let cfg = cfg.clone();
+                    let listener_shutdown = Arc::clone(&self.shutdown);
                     tracing::info!("Spawning ZMQ PULL listener: {} → {}", cfg.bind, cfg.forward_to);
-                    tokio::spawn(async move {
-                        crate::gateway::zmq::run_pull_listener(cfg).await;
-                    });
+                    runtime.listener_handles.push(tokio::spawn(async move {
+                        crate::gateway::zmq::run_pull_listener(cfg, listener_shutdown).await;
+                    }));
+                }
+                ListenerConfig::MqttSub(cfg) => {
+                    let cfg = cfg.clone();
+                    let listener_shutdown = Arc::clone(&self.shutdown);
+                    tracing::info!(
+                        "Spawning MQTT subscriber listener: {} topics={:?} → {}",
+                        cfg.broker_url,
+                        cfg.topics,
+                        cfg.forward_to
+                    );
+                    runtime.listener_handles.push(tokio::spawn(async move {
+                        crate::gateway::mqtt::run_sub_listener(cfg, listener_shutdown).await;
+                    }));
                 }
             }
         }
@@ -581,7 +773,7 @@ impl Gateway for DefaultGateway {
         // the verified remote `SocketAddr` via `ConnectInfo<SocketAddr>`. This
         // provides a tamper-proof client identity for rate limiting that cannot
         // be spoofed by manipulating HTTP headers.
-        tokio::spawn(async move {
+        runtime.server_handle = Some(tokio::spawn(async move {
             if let Err(e) = axum::serve(
                 listener,
                 app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -591,13 +783,40 @@ impl Gateway for DefaultGateway {
             {
                 tracing::error!("Gateway server error: {}", e);
             }
-        });
+        }));
+
+        runtime.running = true;
 
         Ok(())
     }
 
     async fn stop(&self) -> Result<()> {
-        self.shutdown.notify_one();
+        self.shutdown.notify_waiters();
+
+        let (server_handle, metrics_handle, listener_handles) = {
+            let mut runtime = self.runtime.lock().await;
+            if !runtime.running {
+                return Ok(());
+            }
+
+            runtime.running = false;
+            (
+                runtime.server_handle.take(),
+                runtime.metrics_handle.take(),
+                std::mem::take(&mut runtime.listener_handles),
+            )
+        };
+
+        if let Some(handle) = server_handle {
+            let _ = handle.await;
+        }
+        if let Some(handle) = metrics_handle {
+            let _ = handle.await;
+        }
+        for handle in listener_handles {
+            let _ = handle.await;
+        }
+
         Ok(())
     }
 
@@ -620,6 +839,7 @@ pub fn create_gateway(config: crate::config::GatewayConfig) -> Result<DefaultGat
     let graphql_gateway = Arc::new(GraphQLGateway::new(graphql_protocol));
     let grpc_protocol = Arc::new(GrpcProtocol::new(serde_json::Value::Null)?);
     let grpc_gateway = Arc::new(GrpcGateway::new(grpc_protocol));
+    let mqtt_gateway = Arc::new(MqttGateway::new());
     let metrics = Arc::new(MetricsStore::new());
     let middleware = Arc::new(build_middleware_chain(&config.middleware));
 
@@ -631,11 +851,13 @@ pub fn create_gateway(config: crate::config::GatewayConfig) -> Result<DefaultGat
         http_gateway,
         graphql_gateway,
         grpc_gateway,
+        mqtt_gateway,
         metrics,
         config_routes: config.routes,
         listeners: config.listeners,
         middleware,
         shutdown: Arc::new(Notify::new()),
+        runtime: Mutex::new(RuntimeHandles::default()),
     })
 }
 
@@ -663,6 +885,13 @@ fn build_protocols(configs: &[crate::config::ProtocolConfig]) -> Result<Vec<Arc<
 /// Builds the middleware chain from the typed middleware config section.
 fn build_middleware_chain(config: &crate::config::MiddlewareSectionConfig) -> MiddlewareChain {
     let mut chain = MiddlewareChain::new();
+
+    chain.add(Arc::new(crate::core::middleware::LoggingMiddleware::new(
+        MiddlewareConfig {
+            enabled: config.logging.enabled,
+            settings: serde_json::json!({}),
+        },
+    )));
 
     chain.add(Arc::new(AuthMiddleware::new(MiddlewareConfig {
         enabled: config.auth.enabled,

@@ -17,7 +17,6 @@ protocols:
   - name: "mqtt"
     enabled: true
     settings:
-      broker_url: "tcp://localhost:1883"
       client_id: "iron-babel-mqtt"
 
 # Middleware — disabled by default; enable and configure as needed.
@@ -30,6 +29,8 @@ middleware:
     enabled: false
     requests_per_window: 100
     window_secs: 60
+  logging:
+    enabled: false
 
 # Routes — each route declares its transport with `type:` so every protocol
 # owns its own fields and adding a new transport never bloats other routes.
@@ -81,9 +82,25 @@ routes:
   #     pattern: pub_sub
   #     topic: "orders.created"
 
+  # MQTT publish — gateway publishes the HTTP request body to a topic.
+  - path: "/mqtt/events"
+    methods: ["POST"]
+    transport:
+      type: mqtt
+      broker_url: "mqtt://127.0.0.1:1883"
+      topic: "events.http"
+      qos: 1
+      retain: false
+      timeout_secs: 10
+
 # Inbound listeners — background tasks that receive on a non-HTTP transport
 # and forward each message as an HTTP POST to `forward_to`.
 listeners:
   - type: zmq_pull
     bind: "127.0.0.1:5557"
     forward_to: "http://127.0.0.1:9000/zmq-webhook"
+  - type: mqtt_sub
+    broker_url: "mqtt://127.0.0.1:1883"
+    topics: ["events.device"]
+    qos: 1
+    forward_to: "http://127.0.0.1:9000/mqtt-webhook"

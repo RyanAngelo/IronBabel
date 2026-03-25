@@ -74,7 +74,6 @@ impl GrpcGateway {
             .post(&url)
             .header("content-type", "application/grpc")
             .header("te", "trailers")
-            .header("x-forwarded-for", "gateway")
             .body(body);
 
         for (name, value) in &forward_headers {

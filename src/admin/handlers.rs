@@ -116,6 +116,9 @@ pub async fn admin_routes(State(state): State<AppState>) -> Json<Vec<RouteInfo>>
                 TransportConfig::WebSocket(cfg) => {
                     ("websocket".to_string(), cfg.url.clone(), cfg.timeout_secs)
                 }
+                TransportConfig::Mqtt(cfg) => {
+                    ("mqtt".to_string(), cfg.broker_url.clone(), cfg.timeout_secs)
+                }
             };
             RouteInfo {
                 path: r.path.clone(),

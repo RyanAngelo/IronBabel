@@ -9,7 +9,7 @@ A powerful cross-protocol API gateway written in Rust that enables seamless comm
   - REST/HTTP ↔ gRPC
   - WebSockets ↔ HTTP/SSE
   - WebSockets ↔ REST polling
-  - MQTT ↔ HTTP webhooks
+  - HTTP ↔ MQTT publish/webhook flows
 - Automatic schema discovery and generation
 - Request/response transformation
 - Developer-friendly configuration

@@ -1,6 +1,8 @@
 use std::time::Duration;
 
 use zeromq::prelude::*;
+use std::sync::Arc;
+use tokio::sync::Notify;
 
 use crate::config::ZmqPullListenerConfig;
 use crate::error::{Error, Result};
@@ -148,9 +150,8 @@ impl Default for ZmqGateway {
 /// indefinitely, and forward each one as an HTTP POST to `config.target`.
 ///
 /// Spawned once per `zmq_listeners` entry during gateway startup.
-/// The task exits only on socket error; in practice it runs until the process
-/// terminates.
-pub async fn run_pull_listener(config: ZmqPullListenerConfig) {
+/// The task exits on shutdown or socket error.
+pub async fn run_pull_listener(config: ZmqPullListenerConfig, shutdown: Arc<Notify>) {
     let bind_addr = to_tcp_addr(&config.bind);
     let http_target = config.forward_to.clone();
 
@@ -169,28 +170,32 @@ pub async fn run_pull_listener(config: ZmqPullListenerConfig) {
         .unwrap_or_default();
 
     loop {
-        match socket.recv().await {
+        let recv_result = tokio::select! {
+            _ = shutdown.notified() => {
+                tracing::info!("ZMQ PULL listener shutting down on {}", bind_addr);
+                break;
+            }
+            recv_result = socket.recv() => recv_result,
+        };
+
+        match recv_result {
             Ok(msg) => {
                 let body = msg_to_bytes(msg);
-                let target = http_target.clone();
-                let client = client.clone();
-                tokio::spawn(async move {
-                    match client
-                        .post(&target)
-                        .header("content-type", "application/octet-stream")
-                        .header("x-zmq-source", "ironbabel-pull-listener")
-                        .body(body)
-                        .send()
-                        .await
-                    {
-                        Ok(resp) => tracing::debug!(
-                            "ZMQ→HTTP forwarded to {} → {}",
-                            target,
-                            resp.status()
-                        ),
-                        Err(e) => tracing::warn!("ZMQ→HTTP forward to {} failed: {}", target, e),
-                    }
-                });
+                match client
+                    .post(&http_target)
+                    .header("content-type", "application/octet-stream")
+                    .header("x-zmq-source", "ironbabel-pull-listener")
+                    .body(body)
+                    .send()
+                    .await
+                {
+                    Ok(resp) => tracing::debug!(
+                        "ZMQ→HTTP forwarded to {} → {}",
+                        http_target,
+                        resp.status()
+                    ),
+                    Err(e) => tracing::warn!("ZMQ→HTTP forward to {} failed: {}", http_target, e),
+                }
             }
             Err(e) => {
                 tracing::error!("ZMQ PULL listener recv error on {}: {}", bind_addr, e);
@@ -221,14 +226,9 @@ mod tests {
             .await
             .expect("rep bind");
         tokio::spawn(async move {
-            loop {
-                match socket.recv().await {
-                    Ok(msg) => {
-                        if socket.send(msg).await.is_err() {
-                            break;
-                        }
-                    }
-                    Err(_) => break,
+            while let Ok(msg) = socket.recv().await {
+                if socket.send(msg).await.is_err() {
+                    break;
                 }
             }
         })

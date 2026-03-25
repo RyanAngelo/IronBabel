@@ -1,6 +1,6 @@
 # Getting Started with IronBabel
 
-IronBabel is a cross-protocol API gateway written in Rust. It accepts HTTP requests and routes them to backends over HTTP, GraphQL, gRPC, WebSocket, or ZeroMQ, translating wire formats and enforcing middleware policies along the way.
+IronBabel is a cross-protocol API gateway written in Rust. It accepts HTTP requests and routes them to backends over HTTP, GraphQL, gRPC, WebSocket, ZeroMQ, or MQTT, translating wire formats and enforcing middleware policies along the way.
 
 ---
 
@@ -12,18 +12,17 @@ IronBabel is a cross-protocol API gateway written in Rust. It accepts HTTP reque
 | `cargo` | ships with Rust | |
 | `pkg-config` | any | Required by native TLS dependencies |
 | `libssl-dev` | any | Required on Linux; macOS ships OpenSSL via Homebrew or the system |
-| `cmake` + `g++` | any | Required to compile the paho-mqtt C library |
 
 On Debian/Ubuntu:
 
 ```sh
-apt-get install -y pkg-config libssl-dev cmake g++
+apt-get install -y pkg-config libssl-dev
 ```
 
 On macOS (with Homebrew):
 
 ```sh
-brew install cmake openssl
+brew install openssl
 ```
 
 ---

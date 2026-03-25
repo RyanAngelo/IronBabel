@@ -56,7 +56,6 @@ impl GraphQLGateway {
         let mut req = client
             .post(target_url)
             .header("content-type", "application/json")
-            .header("x-forwarded-for", "gateway")
             .body(body);
 
         for (name, value) in &forward_headers {

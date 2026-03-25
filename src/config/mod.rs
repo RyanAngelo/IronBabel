@@ -28,6 +28,7 @@ impl GatewayConfig {
         let path = config_file_path();
         let mut config = load_from_file(path).await?;
         apply_env_overrides(&mut config);
+        config.validate()?;
         Ok(config)
     }
 
@@ -76,6 +77,11 @@ impl GatewayConfig {
                 TransportConfig::WebSocket(cfg) => {
                     validate_ws_url(&cfg.url, &route.path)?;
                 }
+                TransportConfig::Mqtt(cfg) => {
+                    validate_mqtt_broker_url(&cfg.broker_url, &route.path)?;
+                    validate_mqtt_topic(&cfg.topic, &route.path)?;
+                    validate_mqtt_qos(cfg.qos, &route.path)?;
+                }
                 TransportConfig::Zmq(cfg) => {
                     if cfg.address.trim().is_empty() {
                         return Err(Error::Config(format!(
@@ -96,6 +102,19 @@ impl GatewayConfig {
                         ));
                     }
                     validate_http_url(&cfg.forward_to, "zmq_pull listener forward_to")?;
+                }
+                ListenerConfig::MqttSub(cfg) => {
+                    validate_mqtt_broker_url(&cfg.broker_url, "mqtt_sub listener broker_url")?;
+                    if cfg.topics.is_empty() {
+                        return Err(Error::Config(
+                            "mqtt_sub listener: topics must not be empty".to_string(),
+                        ));
+                    }
+                    for topic in &cfg.topics {
+                        validate_mqtt_topic(topic, "mqtt_sub listener topic")?;
+                    }
+                    validate_mqtt_qos(cfg.qos, "mqtt_sub listener qos")?;
+                    validate_http_url(&cfg.forward_to, "mqtt_sub listener forward_to")?;
                 }
             }
         }
@@ -148,6 +167,7 @@ pub enum TransportConfig {
     GraphQL(GraphQLTransportConfig),
     Grpc(GrpcTransportConfig),
     WebSocket(WebSocketTransportConfig),
+    Mqtt(MqttTransportConfig),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -228,6 +248,27 @@ pub struct WebSocketTransportConfig {
     pub timeout_secs: u64,
 }
 
+/// Configuration for an MQTT publish route.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MqttTransportConfig {
+    /// MQTT broker URL. Accepted schemes: `mqtt://`, `mqtts://`, `tcp://`, `ssl://`.
+    pub broker_url: String,
+    /// Topic to publish each request body to.
+    pub topic: String,
+    /// MQTT QoS level (0, 1, or 2). Defaults to 0.
+    #[serde(default)]
+    pub qos: u8,
+    /// Whether the message should be retained by the broker. Defaults to false.
+    #[serde(default)]
+    pub retain: bool,
+    /// Optional client ID for the publisher connection.
+    #[serde(default)]
+    pub client_id: Option<String>,
+    /// Publish timeout in seconds. Defaults to 30.
+    #[serde(default = "default_timeout_secs")]
+    pub timeout_secs: u64,
+}
+
 /// ZMQ messaging pattern for a route.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -250,6 +291,7 @@ pub enum ZmqPattern {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ListenerConfig {
     ZmqPull(ZmqPullListenerConfig),
+    MqttSub(MqttSubListenerConfig),
 }
 
 /// Binds a ZMQ PULL socket and forwards each received frame as an HTTP POST.
@@ -258,6 +300,23 @@ pub struct ZmqPullListenerConfig {
     /// ZMQ address to bind in `host:port` form, e.g. `"127.0.0.1:5557"`.
     pub bind: String,
     /// HTTP URL to POST each received frame to.
+    pub forward_to: String,
+}
+
+/// Subscribes to MQTT topics and forwards each publish as an HTTP POST.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct MqttSubListenerConfig {
+    /// MQTT broker URL. Accepted schemes: `mqtt://`, `mqtts://`, `tcp://`, `ssl://`.
+    pub broker_url: String,
+    /// Topics to subscribe to.
+    pub topics: Vec<String>,
+    /// MQTT QoS level for subscriptions (0, 1, or 2). Defaults to 0.
+    #[serde(default)]
+    pub qos: u8,
+    /// Optional client ID for the subscriber connection.
+    #[serde(default)]
+    pub client_id: Option<String>,
+    /// HTTP URL to POST each received payload to.
     pub forward_to: String,
 }
 
@@ -271,6 +330,8 @@ pub struct MiddlewareSectionConfig {
     pub auth: AuthConfig,
     #[serde(default)]
     pub rate_limit: RateLimitConfig,
+    #[serde(default)]
+    pub logging: LoggingConfig,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -303,6 +364,19 @@ impl Default for RateLimitConfig {
             requests_per_window: default_requests_per_window(),
             window_secs: default_window_secs(),
         }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LoggingConfig {
+    /// Set to true to log requests and responses through the middleware chain.
+    #[serde(default)]
+    pub enabled: bool,
+}
+
+impl Default for LoggingConfig {
+    fn default() -> Self {
+        Self { enabled: false }
     }
 }
 
@@ -349,6 +423,46 @@ fn validate_ws_url(url: &str, context: &str) -> crate::error::Result<()> {
         return Err(crate::error::Error::Config(format!(
             "{}: WebSocket URL '{}' must start with ws://, wss://, http://, or https://",
             context, url
+        )));
+    }
+    Ok(())
+}
+
+fn validate_mqtt_broker_url(url: &str, context: &str) -> crate::error::Result<()> {
+    if url.trim().is_empty() {
+        return Err(crate::error::Error::Config(format!(
+            "{}: broker URL must not be empty",
+            context
+        )));
+    }
+    let ok = url.starts_with("mqtt://")
+        || url.starts_with("mqtts://")
+        || url.starts_with("tcp://")
+        || url.starts_with("ssl://");
+    if !ok {
+        return Err(crate::error::Error::Config(format!(
+            "{}: MQTT broker URL '{}' must start with mqtt://, mqtts://, tcp://, or ssl://",
+            context, url
+        )));
+    }
+    Ok(())
+}
+
+fn validate_mqtt_topic(topic: &str, context: &str) -> crate::error::Result<()> {
+    if topic.trim().is_empty() {
+        return Err(crate::error::Error::Config(format!(
+            "{}: MQTT topic must not be empty",
+            context
+        )));
+    }
+    Ok(())
+}
+
+fn validate_mqtt_qos(qos: u8, context: &str) -> crate::error::Result<()> {
+    if qos > 2 {
+        return Err(crate::error::Error::Config(format!(
+            "{}: MQTT QoS must be 0, 1, or 2",
+            context
         )));
     }
     Ok(())

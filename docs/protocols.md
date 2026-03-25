@@ -1,6 +1,6 @@
 # Protocols
 
-IronBabel supports five transport protocols for routing incoming HTTP requests to backend services: HTTP, GraphQL, gRPC, WebSocket, and ZeroMQ. Each protocol has a corresponding implementation in `src/protocols/` (encoding/validation logic) and `src/gateway/` (proxy/connection logic).
+IronBabel supports six transport protocols for routing incoming HTTP requests to backend services: HTTP, GraphQL, gRPC, WebSocket, ZeroMQ, and MQTT. Each protocol has a corresponding implementation in `src/protocols/` (encoding/validation logic) and `src/gateway/` (proxy/connection logic).
 
 ---
 
@@ -34,7 +34,7 @@ The HTTP gateway is the most general transport. It forwards incoming HTTP reques
 2. The request path is checked for path traversal sequences (`..`, `%2e%2e`, mixed encodings). A traversal is detected in both the request handler and inside `HttpGateway::proxy` for defence in depth.
 3. Hop-by-hop headers (`connection`, `keep-alive`, `proxy-authenticate`, `proxy-authorization`, `te`, `trailers`, `transfer-encoding`, `upgrade`) are stripped from both the request and response.
 4. The `host` header is removed so `reqwest` can set it correctly for the upstream host.
-5. An `X-Forwarded-For: gateway` header is added to the outbound request.
+5. The verified client IP is written into `X-Forwarded-For` on the outbound request.
 6. The response headers are sanitized (hop-by-hop headers stripped) before being forwarded to the client.
 
 ### Body size limit
@@ -96,7 +96,7 @@ Forwarded to upstream:
 ```
 POST http://api-service:4000/graphql HTTP/1.1
 Content-Type: application/json
-X-Forwarded-For: gateway
+X-Forwarded-For: 203.0.113.10
 
 {"query": "{ users { id name } }", "variables": {}}
 ```
@@ -380,9 +380,57 @@ curl -X POST http://127.0.0.1:8080/zmq/events \
 
 ## MQTT Protocol
 
-**Source files:** `src/protocols/mqtt.rs`
+**Source files:** `src/protocols/mqtt.rs`, `src/gateway/mqtt.rs`
 
-The MQTT protocol implementation is currently a passthrough stub — `encode` and `decode` return the data unchanged. MQTT routing through the gateway is not yet implemented. The protocol descriptor can be listed in the `protocols` section, but no route transport type exists for MQTT yet.
+### What it does
+
+The MQTT transport supports two directions:
+
+- HTTP → MQTT publish via `transport.type: mqtt`
+- MQTT subscribe → HTTP webhook via `listeners.type: mqtt_sub`
+
+The request/response protocol layer itself is intentionally simple: MQTT payloads are treated as raw bytes with a 10 MB size cap.
+
+### HTTP → MQTT publish
+
+For an MQTT route, the incoming HTTP request body is published to the configured broker/topic and the gateway returns `202 Accepted` when the publish completes.
+
+```yaml
+transport:
+  type: mqtt
+  broker_url: "mqtt://broker:1883"
+  topic: "events.http"
+  qos: 1
+  retain: false
+  timeout_secs: 10
+```
+
+Supported broker URL schemes are `mqtt://`, `mqtts://`, `tcp://`, and `ssl://`.
+
+### MQTT subscribe → HTTP webhook
+
+An `mqtt_sub` listener connects to the broker, subscribes to one or more topics, and POSTs each received publish to an HTTP endpoint with:
+
+- `Content-Type: application/octet-stream`
+- `X-MQTT-Source: iron-babel-mqtt-listener`
+- `X-MQTT-Topic: <topic>`
+- `X-MQTT-QoS: <0|1|2>`
+- `X-MQTT-Retain: <true|false>`
+
+```yaml
+listeners:
+  - type: mqtt_sub
+    broker_url: "mqtt://broker:1883"
+    topics: ["events.device"]
+    qos: 1
+    forward_to: "http://api-service:9000/mqtt-webhook"
+```
+
+### Security considerations
+
+- Broker URLs are configuration-defined only; clients cannot redirect publishes.
+- MQTT topics must be explicitly configured and cannot be overridden by request data.
+- Payloads are treated as opaque bytes, avoiding accidental schema assumptions inside the gateway.
 
 ---
 

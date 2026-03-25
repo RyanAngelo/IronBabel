@@ -74,7 +74,6 @@ impl HttpGateway {
         for (name, value) in &forward_headers {
             req = req.header(name.as_str(), value.as_str());
         }
-        req = req.header("x-forwarded-for", "gateway");
 
         let response = req.send().await.map_err(|e| Error::Protocol(e.to_string()))?;
 
@@ -95,6 +94,18 @@ impl HttpGateway {
             .to_vec();
 
         Ok((status, resp_headers, resp_body))
+    }
+}
+
+#[async_trait]
+impl ProtocolGateway for HttpGateway {
+    async fn handle_request(&self, _request: Vec<u8>) -> Result<Vec<u8>> {
+        // Raw byte handle_request is not used for HTTP — callers use proxy() directly.
+        Ok(Vec::new())
+    }
+
+    fn protocol(&self) -> Arc<dyn Protocol> {
+        self.protocol.clone()
     }
 }
 
@@ -221,17 +232,5 @@ mod tests {
                 "got unexpected scheme validation error: {e}"
             );
         }
-    }
-}
-
-#[async_trait]
-impl ProtocolGateway for HttpGateway {
-    async fn handle_request(&self, _request: Vec<u8>) -> Result<Vec<u8>> {
-        // Raw byte handle_request is not used for HTTP — callers use proxy() directly.
-        Ok(Vec::new())
-    }
-
-    fn protocol(&self) -> Arc<dyn Protocol> {
-        self.protocol.clone()
     }
 }

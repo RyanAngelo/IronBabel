@@ -19,6 +19,7 @@ listeners: [...]
 middleware:
   auth: {...}
   rate_limit: {...}
+  logging: {...}
 ```
 
 | Field | Type | Required | Description |
@@ -28,7 +29,7 @@ middleware:
 | `protocols` | array | yes | List of protocol descriptors. Declares which protocols are compiled into the gateway at startup. |
 | `routes` | array | no | Routing table. Each entry maps a path prefix to a backend transport. Defaults to an empty list. |
 | `listeners` | array | no | Inbound background listeners. Each entry binds a non-HTTP socket and forwards received frames to an HTTP URL. Defaults to an empty list. |
-| `middleware` | object | no | Global middleware configuration. Both sub-sections default to disabled. |
+| `middleware` | object | no | Global middleware configuration. All sub-sections default to disabled. |
 
 ---
 
@@ -55,9 +56,7 @@ protocols:
     settings: {}
   - name: "mqtt"
     enabled: true
-    settings:
-      broker_url: "tcp://localhost:1883"
-      client_id: "iron-babel-mqtt"
+    settings: {}
 ```
 
 | Field | Type | Required | Description |
@@ -199,6 +198,30 @@ transport:
 | `url` | string | required | Backend WebSocket URL. Accepted schemes: `ws://`, `wss://`, `http://` (converted to `ws://`), `https://` (converted to `wss://`), or a bare `host:port` (treated as `ws://`). |
 | `timeout_secs` | integer | `30` | Connection establishment timeout. |
 
+### `mqtt` Transport
+
+Publishes the incoming HTTP request body to an MQTT broker topic and returns `202 Accepted` when the publish succeeds.
+
+```yaml
+transport:
+  type: mqtt
+  broker_url: "mqtt://broker:1883"
+  topic: "events.http"
+  qos: 1
+  retain: false
+  client_id: null
+  timeout_secs: 10
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `broker_url` | string | required | MQTT broker URL. Accepted schemes: `mqtt://`, `mqtts://`, `tcp://`, `ssl://`. |
+| `topic` | string | required | MQTT topic to publish to. |
+| `qos` | integer | `0` | MQTT QoS level. Must be `0`, `1`, or `2`. |
+| `retain` | boolean | `false` | Whether the published message should be retained by the broker. |
+| `client_id` | string or null | `null` | Optional MQTT client ID. If omitted, the gateway generates one. |
+| `timeout_secs` | integer | `30` | Maximum time to wait for the publish workflow to complete. |
+
 ---
 
 ## `listeners` Section
@@ -223,6 +246,31 @@ listeners:
 | `forward_to` | string | yes | HTTP URL to POST each received frame to. Each frame is sent with `Content-Type: application/octet-stream` and an `X-ZMQ-Source: ironbabel-pull-listener` header. |
 
 The listener uses a 30-second HTTP timeout for each forwarded frame. If the HTTP POST fails, an error is logged and the listener continues receiving subsequent frames.
+
+### `mqtt_sub` Listener
+
+Connects to an MQTT broker, subscribes to one or more topics, and POSTs each received payload to an HTTP URL.
+
+```yaml
+listeners:
+  - type: mqtt_sub
+    broker_url: "mqtt://broker:1883"
+    topics: ["events.device"]
+    qos: 1
+    client_id: null
+    forward_to: "http://127.0.0.1:9000/mqtt-webhook"
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | yes | Must be `mqtt_sub`. |
+| `broker_url` | string | yes | MQTT broker URL. Accepted schemes: `mqtt://`, `mqtts://`, `tcp://`, `ssl://`. |
+| `topics` | string array | yes | Topics to subscribe to. |
+| `qos` | integer | no | MQTT QoS level for subscriptions. Must be `0`, `1`, or `2`. Defaults to `0`. |
+| `client_id` | string or null | no | Optional MQTT client ID. If omitted, the gateway generates one. |
+| `forward_to` | string | yes | HTTP URL to POST each received payload to. |
+
+Each forwarded request includes `Content-Type: application/octet-stream` plus `X-MQTT-Source`, `X-MQTT-Topic`, `X-MQTT-QoS`, and `X-MQTT-Retain` headers.
 
 ---
 
@@ -260,7 +308,7 @@ Behavior matrix:
 
 ### `rate_limit` Sub-section
 
-Enforces per-client request rate limits using a sliding window algorithm. The client key is the value of the `X-Forwarded-For` header; if absent, all requests share a single `"global"` bucket.
+Enforces per-client request rate limits using a sliding window algorithm. The client key is the verified remote socket IP address; if it is unavailable, requests fall back to a shared `"global"` bucket.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
@@ -296,7 +344,6 @@ protocols:
   - name: "mqtt"
     enabled: true
     settings:
-      broker_url: "tcp://localhost:1883"
       client_id: "iron-babel-mqtt"
 
 middleware:
@@ -308,6 +355,8 @@ middleware:
     enabled: false
     requests_per_window: 100
     window_secs: 60
+  logging:
+    enabled: false
 
 routes:
   - path: "/api/v1"
@@ -355,10 +404,25 @@ routes:
   #     pattern: pub_sub
   #     topic: "orders.created"
 
+  - path: "/mqtt/events"
+    methods: ["POST"]
+    transport:
+      type: mqtt
+      broker_url: "mqtt://127.0.0.1:1883"
+      topic: "events.http"
+      qos: 1
+      retain: false
+      timeout_secs: 10
+
 listeners:
   - type: zmq_pull
     bind: "127.0.0.1:5557"
     forward_to: "http://127.0.0.1:9000/zmq-webhook"
+  - type: mqtt_sub
+    broker_url: "mqtt://127.0.0.1:1883"
+    topics: ["events.device"]
+    qos: 1
+    forward_to: "http://127.0.0.1:9000/mqtt-webhook"
 ```
 
 ---
