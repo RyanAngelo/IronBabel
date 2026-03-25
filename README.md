@@ -1,6 +1,6 @@
 # Iron Babel
 
-A powerful cross-protocol API gateway written in Rust that enables seamless communication between services using different protocols.
+IronBabel is a protocol bridge, not just an API gateway. It connects HTTP APIs to gRPC, GraphQL, WebSockets, MQTT, and ZeroMQ in one lightweight runtime.
 
 ## Features
 
