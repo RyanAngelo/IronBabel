@@ -4,6 +4,7 @@ use crate::error::Result;
 
 pub mod grpc;
 pub mod graphql;
+pub mod amqp;
 pub mod http;
 pub mod mqtt;
 pub mod ws;

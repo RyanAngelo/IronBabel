@@ -7,7 +7,7 @@ use crate::config::env::{apply_env_overrides, config_file_path};
 // Top-level config
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct GatewayConfig {
     pub port: u16,
     pub host: String,
@@ -82,6 +82,15 @@ impl GatewayConfig {
                     validate_mqtt_topic(&cfg.topic, &route.path)?;
                     validate_mqtt_qos(cfg.qos, &route.path)?;
                 }
+                TransportConfig::Amqp(cfg) => {
+                    validate_amqp_broker_url(&cfg.broker_url, &route.path)?;
+                    if cfg.routing_key.trim().is_empty() {
+                        return Err(Error::Config(format!(
+                            "{}: AMQP routing_key must not be empty",
+                            route.path
+                        )));
+                    }
+                }
                 TransportConfig::Zmq(cfg) => {
                     if cfg.address.trim().is_empty() {
                         return Err(Error::Config(format!(
@@ -116,6 +125,15 @@ impl GatewayConfig {
                     validate_mqtt_qos(cfg.qos, "mqtt_sub listener qos")?;
                     validate_http_url(&cfg.forward_to, "mqtt_sub listener forward_to")?;
                 }
+                ListenerConfig::AmqpConsume(cfg) => {
+                    validate_amqp_broker_url(&cfg.broker_url, "amqp_consume listener broker_url")?;
+                    if cfg.queue.trim().is_empty() {
+                        return Err(Error::Config(
+                            "amqp_consume listener: queue must not be empty".to_string(),
+                        ));
+                    }
+                    validate_http_url(&cfg.forward_to, "amqp_consume listener forward_to")?;
+                }
             }
         }
 
@@ -127,7 +145,7 @@ impl GatewayConfig {
 // Protocol config (for protocol-level global settings)
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ProtocolConfig {
     pub name: String,
     pub enabled: bool,
@@ -168,6 +186,7 @@ pub enum TransportConfig {
     Grpc(GrpcTransportConfig),
     WebSocket(WebSocketTransportConfig),
     Mqtt(MqttTransportConfig),
+    Amqp(AmqpTransportConfig),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -269,6 +288,30 @@ pub struct MqttTransportConfig {
     pub timeout_secs: u64,
 }
 
+/// Configuration for an AMQP/RabbitMQ publish route.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AmqpTransportConfig {
+    /// AMQP broker URL. Accepted schemes: `amqp://` and `amqps://`.
+    pub broker_url: String,
+    /// Exchange to publish to. An empty string uses the default exchange.
+    #[serde(default)]
+    pub exchange: String,
+    /// Routing key to publish with.
+    pub routing_key: String,
+    /// Whether `mandatory` should be set on the publish. Defaults to false.
+    #[serde(default)]
+    pub mandatory: bool,
+    /// Whether the publish should be marked persistent. Defaults to true.
+    #[serde(default = "default_true")]
+    pub persistent: bool,
+    /// Optional content type for the published message properties.
+    #[serde(default)]
+    pub content_type: Option<String>,
+    /// Publish timeout in seconds. Defaults to 30.
+    #[serde(default = "default_timeout_secs")]
+    pub timeout_secs: u64,
+}
+
 /// ZMQ messaging pattern for a route.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -292,6 +335,7 @@ pub enum ZmqPattern {
 pub enum ListenerConfig {
     ZmqPull(ZmqPullListenerConfig),
     MqttSub(MqttSubListenerConfig),
+    AmqpConsume(AmqpConsumeListenerConfig),
 }
 
 /// Binds a ZMQ PULL socket and forwards each received frame as an HTTP POST.
@@ -320,11 +364,28 @@ pub struct MqttSubListenerConfig {
     pub forward_to: String,
 }
 
+/// Consumes from an AMQP queue and forwards each delivery as an HTTP POST.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AmqpConsumeListenerConfig {
+    /// AMQP broker URL. Accepted schemes: `amqp://` and `amqps://`.
+    pub broker_url: String,
+    /// Queue to consume from.
+    pub queue: String,
+    /// Optional consumer tag for the AMQP consumer.
+    #[serde(default)]
+    pub consumer_tag: Option<String>,
+    /// Whether deliveries should be auto-acked. Defaults to false.
+    #[serde(default)]
+    pub auto_ack: bool,
+    /// HTTP URL to POST each consumed payload to.
+    pub forward_to: String,
+}
+
 // ---------------------------------------------------------------------------
 // Middleware config
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct MiddlewareSectionConfig {
     #[serde(default)]
     pub auth: AuthConfig,
@@ -334,7 +395,7 @@ pub struct MiddlewareSectionConfig {
     pub logging: LoggingConfig,
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct AuthConfig {
     /// Set to true to require a valid Bearer token on every request.
     #[serde(default)]
@@ -344,7 +405,7 @@ pub struct AuthConfig {
     pub api_keys: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RateLimitConfig {
     /// Set to true to enforce per-client request rate limits.
     #[serde(default)]
@@ -367,7 +428,7 @@ impl Default for RateLimitConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct LoggingConfig {
     /// Set to true to log requests and responses through the middleware chain.
     #[serde(default)]
@@ -387,6 +448,7 @@ impl Default for LoggingConfig {
 fn default_timeout_secs() -> u64 { 30 }
 fn default_requests_per_window() -> u32 { 100 }
 fn default_window_secs() -> u64 { 60 }
+fn default_true() -> bool { true }
 
 // ---------------------------------------------------------------------------
 // Validation helpers
@@ -463,6 +525,23 @@ fn validate_mqtt_qos(qos: u8, context: &str) -> crate::error::Result<()> {
         return Err(crate::error::Error::Config(format!(
             "{}: MQTT QoS must be 0, 1, or 2",
             context
+        )));
+    }
+    Ok(())
+}
+
+fn validate_amqp_broker_url(url: &str, context: &str) -> crate::error::Result<()> {
+    if url.trim().is_empty() {
+        return Err(crate::error::Error::Config(format!(
+            "{}: broker URL must not be empty",
+            context
+        )));
+    }
+    let ok = url.starts_with("amqp://") || url.starts_with("amqps://");
+    if !ok {
+        return Err(crate::error::Error::Config(format!(
+            "{}: AMQP broker URL '{}' must start with amqp:// or amqps://",
+            context, url
         )));
     }
     Ok(())

@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::config::GatewayConfig;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RequestLogEntry {
     pub id: u64,
@@ -52,4 +54,36 @@ pub struct RouteInfo {
     pub total_requests: u64,
     pub error_count: u64,
     pub avg_latency_ms: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigSnapshot {
+    pub active: GatewayConfig,
+    pub draft: GatewayConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigValidationResponse {
+    pub valid: bool,
+    pub errors: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigDraftResponse {
+    pub saved: bool,
+    pub errors: Vec<String>,
+    pub draft: GatewayConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigUiSchema {
+    pub route_templates: Vec<ConfigTemplate>,
+    pub listener_templates: Vec<ConfigTemplate>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigTemplate {
+    pub kind: String,
+    pub label: String,
+    pub value: serde_json::Value,
 }

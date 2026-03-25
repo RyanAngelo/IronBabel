@@ -5,12 +5,14 @@
 //!
 //! Usage:
 //!   cargo run --bin load_gen -- [--gateway URL] [--rps N] [--error-rate F] [--slow-rate F]
+//!       [--include-mqtt] [--include-amqp]
 //!
 //! Defaults: gateway=http://127.0.0.1:8080, rps=10, error-rate=0.10, slow-rate=0.05
 
 use axum::{extract::State, response::IntoResponse, routing::any, Router};
 use reqwest::Client;
 use std::{
+    env,
     collections::hash_map::DefaultHasher,
     hash::{Hash, Hasher},
     io::Write,
@@ -85,7 +87,7 @@ struct Route {
     body: Option<&'static str>,
 }
 
-const ROUTES: &[Route] = &[
+const BASE_ROUTES: &[Route] = &[
     Route { method: "GET",    path: "/api/v1/users",      body: None },
     Route { method: "GET",    path: "/api/v1/products",   body: None },
     Route { method: "POST",   path: "/api/v1/orders",     body: Some(r#"{"item":"widget","qty":3}"#) },
@@ -98,6 +100,25 @@ const ROUTES: &[Route] = &[
     Route { method: "GET",    path: "/nonexistent",       body: None }, // intentional 404
 ];
 
+const MQTT_ROUTES: &[Route] = &[
+    Route { method: "POST", path: "/mqtt/events", body: Some(r#"{"event":"device.ping","device_id":"sim-001","temperature_c":21.4}"#) },
+];
+
+const AMQP_ROUTES: &[Route] = &[
+    Route { method: "POST", path: "/amqp/events", body: Some(r#"{"event":"job.created","job_id":"job-001","priority":"normal"}"#) },
+];
+
+fn build_routes(cfg: &Config) -> Vec<Route> {
+    let mut routes = BASE_ROUTES.to_vec();
+    if cfg.include_mqtt {
+        routes.extend_from_slice(MQTT_ROUTES);
+    }
+    if cfg.include_amqp {
+        routes.extend_from_slice(AMQP_ROUTES);
+    }
+    routes
+}
+
 // ---------------------------------------------------------------------------
 // Traffic pump
 // ---------------------------------------------------------------------------
@@ -105,6 +126,7 @@ const ROUTES: &[Route] = &[
 async fn pump_traffic(
     client: Arc<Client>,
     gateway: String,
+    routes: Arc<Vec<Route>>,
     rps: u64,
     sent: Arc<AtomicU64>,
     errors: Arc<AtomicU64>,
@@ -113,6 +135,7 @@ async fn pump_traffic(
     for worker_id in 0..rps {
         let client = client.clone();
         let gateway = gateway.clone();
+        let routes = routes.clone();
         let sent = sent.clone();
         let errors = errors.clone();
 
@@ -127,7 +150,7 @@ async fn pump_traffic(
             loop {
                 ticker.tick().await;
 
-                let route = ROUTES[(seq as usize) % ROUTES.len()];
+                let route = routes[(seq as usize) % routes.len()];
                 let url = format!("{}{}", gateway, route.path);
 
                 let method = reqwest::Method::from_bytes(route.method.as_bytes())
@@ -167,15 +190,22 @@ struct Config {
     rps: u64,
     error_rate: f64,
     slow_rate: f64,
+    include_mqtt: bool,
+    include_amqp: bool,
 }
 
 fn parse_args() -> Config {
-    let args: Vec<String> = std::env::args().collect();
+    parse_args_from(env::args().collect())
+}
+
+fn parse_args_from(args: Vec<String>) -> Config {
     let mut cfg = Config {
         gateway: "http://127.0.0.1:8080".into(),
         rps: 10,
         error_rate: 0.10,
         slow_rate: 0.05,
+        include_mqtt: false,
+        include_amqp: false,
     };
     let mut i = 1;
     while i < args.len() {
@@ -195,6 +225,14 @@ fn parse_args() -> Config {
             "--slow-rate" if i + 1 < args.len() => {
                 cfg.slow_rate = args[i + 1].parse().unwrap_or(0.05);
                 i += 2;
+            }
+            "--include-mqtt" => {
+                cfg.include_mqtt = true;
+                i += 1;
+            }
+            "--include-amqp" => {
+                cfg.include_amqp = true;
+                i += 1;
             }
             _ => {
                 i += 1;
@@ -217,6 +255,11 @@ async fn main() {
     println!("  rps        : {}", cfg.rps);
     println!("  error rate : {:.0}%  (backend 500s)", cfg.error_rate * 100.0);
     println!("  slow rate  : {:.0}%  (200 ms added latency)", cfg.slow_rate * 100.0);
+    println!(
+        "  protocols  : http{}{}",
+        if cfg.include_mqtt { ", mqtt" } else { "" },
+        if cfg.include_amqp { ", amqp" } else { "" },
+    );
     println!();
 
     let backend_state = BackendState {
@@ -257,10 +300,12 @@ async fn main() {
 
     let sent = Arc::new(AtomicU64::new(0));
     let errors = Arc::new(AtomicU64::new(0));
+    let routes = Arc::new(build_routes(&cfg));
 
     pump_traffic(
         client,
         cfg.gateway.clone(),
+        routes,
         cfg.rps,
         sent.clone(),
         errors.clone(),
@@ -297,5 +342,61 @@ async fn main() {
             errs,
             err_pct,
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn build_routes_is_http_only_by_default() {
+        let cfg = Config {
+            gateway: "http://127.0.0.1:8080".to_string(),
+            rps: 10,
+            error_rate: 0.1,
+            slow_rate: 0.05,
+            include_mqtt: false,
+            include_amqp: false,
+        };
+
+        let routes = build_routes(&cfg);
+        assert_eq!(routes.len(), BASE_ROUTES.len());
+        assert!(!routes.iter().any(|route| route.path == "/mqtt/events"));
+        assert!(!routes.iter().any(|route| route.path == "/amqp/events"));
+    }
+
+    #[test]
+    fn build_routes_includes_optional_protocol_paths() {
+        let cfg = Config {
+            gateway: "http://127.0.0.1:8080".to_string(),
+            rps: 10,
+            error_rate: 0.1,
+            slow_rate: 0.05,
+            include_mqtt: true,
+            include_amqp: true,
+        };
+
+        let routes = build_routes(&cfg);
+        assert!(routes.iter().any(|route| route.path == "/mqtt/events"));
+        assert!(routes.iter().any(|route| route.path == "/amqp/events"));
+    }
+
+    #[test]
+    fn parse_args_from_reads_optional_protocol_flags() {
+        let cfg = parse_args_from(vec![
+            "load_gen".to_string(),
+            "--gateway".to_string(),
+            "http://localhost:8080".to_string(),
+            "--include-mqtt".to_string(),
+            "--include-amqp".to_string(),
+            "--rps".to_string(),
+            "25".to_string(),
+        ]);
+
+        assert_eq!(cfg.gateway, "http://localhost:8080");
+        assert_eq!(cfg.rps, 25);
+        assert!(cfg.include_mqtt);
+        assert!(cfg.include_amqp);
     }
 }

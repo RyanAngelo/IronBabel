@@ -61,7 +61,7 @@ protocols:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `name` | string | yes | Protocol identifier. One of: `http`, `grpc`, `graphql`, `websocket`, `zmq`, `mqtt`. |
+| `name` | string | yes | Protocol identifier. One of: `http`, `grpc`, `graphql`, `websocket`, `zmq`, `mqtt`, `amqp`. |
 | `enabled` | boolean | yes | When `false`, the protocol is not instantiated and cannot be used in routes. |
 | `settings` | object | yes | Protocol-specific settings passed as a JSON value. Currently informational for most protocols. Use `{}` when no settings are needed. |
 
@@ -222,6 +222,32 @@ transport:
 | `client_id` | string or null | `null` | Optional MQTT client ID. If omitted, the gateway generates one. |
 | `timeout_secs` | integer | `30` | Maximum time to wait for the publish workflow to complete. |
 
+### `amqp` Transport
+
+Publishes the incoming HTTP request body to an AMQP broker and returns `202 Accepted` when the publish succeeds.
+
+```yaml
+transport:
+  type: amqp
+  broker_url: "amqp://guest:guest@rabbitmq:5672/%2f"
+  exchange: ""
+  routing_key: "events.http"
+  mandatory: false
+  persistent: true
+  content_type: "application/octet-stream"
+  timeout_secs: 10
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `broker_url` | string | required | AMQP broker URL. Accepted schemes: `amqp://` and `amqps://`. |
+| `exchange` | string | `""` | Exchange to publish to. An empty string uses the default exchange. |
+| `routing_key` | string | required | Routing key for the publish. |
+| `mandatory` | boolean | `false` | Whether to request broker return handling for unroutable messages. |
+| `persistent` | boolean | `true` | Whether the message should be published with persistent delivery mode. |
+| `content_type` | string or null | `null` | Optional AMQP message content type property. |
+| `timeout_secs` | integer | `30` | Maximum time to wait for the publish workflow to complete. |
+
 ---
 
 ## `listeners` Section
@@ -271,6 +297,31 @@ listeners:
 | `forward_to` | string | yes | HTTP URL to POST each received payload to. |
 
 Each forwarded request includes `Content-Type: application/octet-stream` plus `X-MQTT-Source`, `X-MQTT-Topic`, `X-MQTT-QoS`, and `X-MQTT-Retain` headers.
+
+### `amqp_consume` Listener
+
+Connects to an AMQP broker, consumes messages from a queue, and POSTs each payload to an HTTP URL.
+
+```yaml
+listeners:
+  - type: amqp_consume
+    broker_url: "amqp://guest:guest@rabbitmq:5672/%2f"
+    queue: "events.inbox"
+    consumer_tag: null
+    auto_ack: false
+    forward_to: "http://127.0.0.1:9000/amqp-webhook"
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | yes | Must be `amqp_consume`. |
+| `broker_url` | string | yes | AMQP broker URL. Accepted schemes: `amqp://` and `amqps://`. |
+| `queue` | string | yes | Queue name to consume from. |
+| `consumer_tag` | string or null | no | Optional consumer tag. If omitted, the gateway generates one. |
+| `auto_ack` | boolean | no | Whether the broker should auto-acknowledge deliveries. Defaults to `false`. |
+| `forward_to` | string | yes | HTTP URL to POST each received payload to. |
+
+Each forwarded request includes `Content-Type: application/octet-stream` plus `X-AMQP-Source`, `X-AMQP-Exchange`, `X-AMQP-Routing-Key`, and `X-AMQP-Delivery-Tag` headers. When `auto_ack` is `false`, successful webhook delivery results in `ack`; failures result in `nack` with requeue enabled.
 
 ---
 
@@ -345,6 +396,9 @@ protocols:
     enabled: true
     settings:
       client_id: "iron-babel-mqtt"
+  - name: "amqp"
+    enabled: true
+    settings: {}
 
 middleware:
   auth:
@@ -414,6 +468,17 @@ routes:
       retain: false
       timeout_secs: 10
 
+  - path: "/amqp/events"
+    methods: ["POST"]
+    transport:
+      type: amqp
+      broker_url: "amqp://guest:guest@127.0.0.1:5672/%2f"
+      exchange: ""
+      routing_key: "events.http"
+      mandatory: false
+      persistent: true
+      timeout_secs: 10
+
 listeners:
   - type: zmq_pull
     bind: "127.0.0.1:5557"
@@ -423,6 +488,11 @@ listeners:
     topics: ["events.device"]
     qos: 1
     forward_to: "http://127.0.0.1:9000/mqtt-webhook"
+  - type: amqp_consume
+    broker_url: "amqp://guest:guest@127.0.0.1:5672/%2f"
+    queue: "events.inbox"
+    auto_ack: false
+    forward_to: "http://127.0.0.1:9000/amqp-webhook"
 ```
 
 ---

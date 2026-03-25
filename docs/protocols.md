@@ -434,6 +434,65 @@ listeners:
 
 ---
 
+## AMQP Protocol
+
+**Source files:** `src/protocols/amqp.rs`, `src/gateway/amqp.rs`
+
+### What it does
+
+The AMQP transport supports two directions:
+
+- HTTP → AMQP publish via `transport.type: amqp`
+- AMQP consume → HTTP webhook via `listeners.type: amqp_consume`
+
+The protocol layer is intentionally simple: AMQP payloads are treated as raw bytes with a 10 MB size cap.
+
+### HTTP → AMQP publish
+
+For an AMQP route, the incoming HTTP request body is published to the configured exchange/routing key and the gateway returns `202 Accepted` when the publish completes.
+
+```yaml
+transport:
+  type: amqp
+  broker_url: "amqp://guest:guest@rabbitmq:5672/%2f"
+  exchange: ""
+  routing_key: "events.http"
+  mandatory: false
+  persistent: true
+  timeout_secs: 10
+```
+
+Supported broker URL schemes are `amqp://` and `amqps://`.
+
+### AMQP consume → HTTP webhook
+
+An `amqp_consume` listener connects to the broker, consumes a queue, and POSTs each delivery to an HTTP endpoint with:
+
+- `Content-Type: application/octet-stream`
+- `X-AMQP-Source: iron-babel-amqp-listener`
+- `X-AMQP-Exchange: <exchange>`
+- `X-AMQP-Routing-Key: <routing_key>`
+- `X-AMQP-Delivery-Tag: <delivery_tag>`
+
+```yaml
+listeners:
+  - type: amqp_consume
+    broker_url: "amqp://guest:guest@rabbitmq:5672/%2f"
+    queue: "events.inbox"
+    auto_ack: false
+    forward_to: "http://api-service:9000/amqp-webhook"
+```
+
+When `auto_ack` is `false`, successful webhook delivery produces `ack`; failed webhook delivery produces `nack` with requeue enabled.
+
+### Security considerations
+
+- Broker URLs, exchange names, and routing keys are configuration-defined only; clients cannot redirect publishes.
+- Queue names and webhook targets are configuration-defined only.
+- Payloads are treated as opaque bytes, avoiding accidental schema assumptions inside the gateway.
+
+---
+
 ## Protocol Comparison Summary
 
 | Protocol | Direction | Blocking | Response body | Status on success |
@@ -445,3 +504,5 @@ listeners:
 | ZMQ req_rep | client → upstream | yes | ZMQ reply bytes | `200 OK` |
 | ZMQ push | client → upstream | no | empty | `202 Accepted` |
 | ZMQ pub_sub | client → upstream | no | empty | `202 Accepted` |
+| MQTT publish | client → broker | no | empty | `202 Accepted` |
+| AMQP publish | client → broker | no | empty | `202 Accepted` |

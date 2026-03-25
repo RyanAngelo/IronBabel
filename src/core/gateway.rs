@@ -22,9 +22,11 @@ use crate::protocols::{
 use crate::gateway::graphql::GraphQLGateway;
 use crate::gateway::grpc::GrpcGateway;
 use crate::gateway::mqtt::MqttGateway;
+use crate::gateway::amqp::AmqpGateway;
+use crate::admin::config_store::AdminConfigStore;
 use crate::admin::store::MetricsStore;
 use crate::config::{
-    GrpcTransportConfig, GraphQLTransportConfig, ListenerConfig, MqttTransportConfig,
+    AmqpTransportConfig, GrpcTransportConfig, GraphQLTransportConfig, ListenerConfig, MqttTransportConfig,
     TransportConfig, ZmqPattern, ZmqTransportConfig,
 };
 use crate::gateway::zmq::ZmqGateway;
@@ -43,9 +45,11 @@ pub struct AppState {
     pub graphql_gateway: Arc<GraphQLGateway>,
     pub grpc_gateway: Arc<GrpcGateway>,
     pub mqtt_gateway: Arc<MqttGateway>,
+    pub amqp_gateway: Arc<AmqpGateway>,
     pub metrics: Arc<MetricsStore>,
     pub config_routes: Vec<crate::config::RouteConfig>,
     pub middleware: Arc<MiddlewareChain>,
+    pub config_store: Arc<AdminConfigStore>,
 }
 
 #[derive(Default)]
@@ -264,6 +268,10 @@ async fn handle_request(
             handle_mqtt(&state, &method_str, &path, &route, cfg, body_bytes, start).await
         }
 
+        TransportConfig::Amqp(cfg) => {
+            handle_amqp(&state, &method_str, &path, &route, cfg, body_bytes, start).await
+        }
+
         // WebSocket is handled above before body extraction.
         TransportConfig::WebSocket(_) => unreachable!(),
     }
@@ -350,6 +358,7 @@ fn transport_target(transport: &TransportConfig) -> String {
         TransportConfig::Grpc(cfg) => cfg.url.clone(),
         TransportConfig::WebSocket(cfg) => cfg.url.clone(),
         TransportConfig::Mqtt(cfg) => cfg.broker_url.clone(),
+        TransportConfig::Amqp(cfg) => cfg.broker_url.clone(),
     }
 }
 
@@ -362,6 +371,7 @@ fn transport_timeout(transport: &TransportConfig) -> u64 {
         TransportConfig::Grpc(cfg) => cfg.timeout_secs,
         TransportConfig::WebSocket(cfg) => cfg.timeout_secs,
         TransportConfig::Mqtt(cfg) => cfg.timeout_secs,
+        TransportConfig::Amqp(cfg) => cfg.timeout_secs,
     }
 }
 
@@ -594,6 +604,36 @@ async fn handle_mqtt(
     }
 }
 
+async fn handle_amqp(
+    state: &AppState,
+    method_str: &str,
+    path: &str,
+    route: &crate::config::RouteConfig,
+    cfg: &AmqpTransportConfig,
+    body: Vec<u8>,
+    start: std::time::Instant,
+) -> Response {
+    let matched_route = Some(route.path.clone());
+
+    match state.amqp_gateway.publish(cfg, body).await {
+        Ok(()) => {
+            let latency_ms = start.elapsed().as_millis() as u64;
+            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 202, latency_ms, None).await;
+            finalize_into_response(state, StatusCode::ACCEPTED).await
+        }
+        Err(e) => {
+            tracing::error!("AMQP publish error: {}", e);
+            let latency_ms = start.elapsed().as_millis() as u64;
+            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 502, latency_ms, Some(e.to_string())).await;
+            finalize_into_response(
+                state,
+                (StatusCode::BAD_GATEWAY, format!("AMQP error: {}", e)),
+            )
+            .await
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 // gRPC dispatch helper
 // ---------------------------------------------------------------------------
@@ -676,10 +716,12 @@ pub struct DefaultGateway {
     graphql_gateway: Arc<GraphQLGateway>,
     grpc_gateway: Arc<GrpcGateway>,
     mqtt_gateway: Arc<MqttGateway>,
+    amqp_gateway: Arc<AmqpGateway>,
     metrics: Arc<MetricsStore>,
     config_routes: Vec<crate::config::RouteConfig>,
     listeners: Vec<ListenerConfig>,
     middleware: Arc<MiddlewareChain>,
+    config_store: Arc<AdminConfigStore>,
     shutdown: Arc<Notify>,
     runtime: Mutex<RuntimeHandles>,
 }
@@ -706,9 +748,11 @@ impl Gateway for DefaultGateway {
             graphql_gateway: Arc::clone(&self.graphql_gateway),
             grpc_gateway: Arc::clone(&self.grpc_gateway),
             mqtt_gateway: Arc::clone(&self.mqtt_gateway),
+            amqp_gateway: Arc::clone(&self.amqp_gateway),
             metrics: Arc::clone(&self.metrics),
             config_routes: self.config_routes.clone(),
             middleware: Arc::clone(&self.middleware),
+            config_store: Arc::clone(&self.config_store),
         };
 
         // 1-second tick task for admin dashboard time buckets.
@@ -746,6 +790,19 @@ impl Gateway for DefaultGateway {
                     );
                     runtime.listener_handles.push(tokio::spawn(async move {
                         crate::gateway::mqtt::run_sub_listener(cfg, listener_shutdown).await;
+                    }));
+                }
+                ListenerConfig::AmqpConsume(cfg) => {
+                    let cfg = cfg.clone();
+                    let listener_shutdown = Arc::clone(&self.shutdown);
+                    tracing::info!(
+                        "Spawning AMQP consumer listener: {} queue={} → {}",
+                        cfg.broker_url,
+                        cfg.queue,
+                        cfg.forward_to
+                    );
+                    runtime.listener_handles.push(tokio::spawn(async move {
+                        crate::gateway::amqp::run_consumer_listener(cfg, listener_shutdown).await;
                     }));
                 }
             }
@@ -831,6 +888,7 @@ impl Gateway for DefaultGateway {
 
 /// Creates a `DefaultGateway` from a `GatewayConfig`.
 pub fn create_gateway(config: crate::config::GatewayConfig) -> Result<DefaultGateway> {
+    let admin_config = Arc::new(AdminConfigStore::new(config.clone()));
     let protocols = build_protocols(&config.protocols)?;
     let router = Arc::new(crate::core::Router::new(config.routes.clone()));
     let http_protocol = Arc::new(HttpProtocol::new(serde_json::Value::Null)?);
@@ -840,6 +898,7 @@ pub fn create_gateway(config: crate::config::GatewayConfig) -> Result<DefaultGat
     let grpc_protocol = Arc::new(GrpcProtocol::new(serde_json::Value::Null)?);
     let grpc_gateway = Arc::new(GrpcGateway::new(grpc_protocol));
     let mqtt_gateway = Arc::new(MqttGateway::new());
+    let amqp_gateway = Arc::new(AmqpGateway::new());
     let metrics = Arc::new(MetricsStore::new());
     let middleware = Arc::new(build_middleware_chain(&config.middleware));
 
@@ -852,10 +911,12 @@ pub fn create_gateway(config: crate::config::GatewayConfig) -> Result<DefaultGat
         graphql_gateway,
         grpc_gateway,
         mqtt_gateway,
+        amqp_gateway,
         metrics,
         config_routes: config.routes,
         listeners: config.listeners,
         middleware,
+        config_store: admin_config,
         shutdown: Arc::new(Notify::new()),
         runtime: Mutex::new(RuntimeHandles::default()),
     })
@@ -871,6 +932,7 @@ fn build_protocols(configs: &[crate::config::ProtocolConfig]) -> Result<Vec<Arc<
                 "http"      => Ok(Arc::new(HttpProtocol::new(c.settings.clone())?)),
                 "grpc"      => Ok(Arc::new(GrpcProtocol::new(c.settings.clone())?)),
                 "graphql"   => Ok(Arc::new(GraphQLProtocol::new(c.settings.clone())?)),
+                "amqp"      => Ok(Arc::new(crate::protocols::amqp::AmqpProtocol::new(c.settings.clone())?)),
                 "mqtt"      => Ok(Arc::new(MqttProtocol::new(c.settings.clone())?)),
                 "websocket" => Ok(Arc::new(WebSocketProtocol::new(c.settings.clone())?)),
                 "zmq"       => Ok(Arc::new(crate::protocols::zmq::ZmqProtocol::new(c.settings.clone())?)),

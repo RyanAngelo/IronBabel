@@ -18,6 +18,9 @@ protocols:
     enabled: true
     settings:
       client_id: "iron-babel-mqtt"
+  - name: "amqp"
+    enabled: true
+    settings: {}
 
 # Middleware — disabled by default; enable and configure as needed.
 middleware:
@@ -93,6 +96,18 @@ routes:
       retain: false
       timeout_secs: 10
 
+  # AMQP publish — gateway publishes the HTTP request body to an exchange/key.
+  - path: "/amqp/events"
+    methods: ["POST"]
+    transport:
+      type: amqp
+      broker_url: "amqp://guest:guest@127.0.0.1:5672/%2f"
+      exchange: ""
+      routing_key: "events.http"
+      mandatory: false
+      persistent: true
+      timeout_secs: 10
+
 # Inbound listeners — background tasks that receive on a non-HTTP transport
 # and forward each message as an HTTP POST to `forward_to`.
 listeners:
@@ -104,3 +119,8 @@ listeners:
     topics: ["events.device"]
     qos: 1
     forward_to: "http://127.0.0.1:9000/mqtt-webhook"
+  - type: amqp_consume
+    broker_url: "amqp://guest:guest@127.0.0.1:5672/%2f"
+    queue: "events.inbox"
+    auto_ack: false
+    forward_to: "http://127.0.0.1:9000/amqp-webhook"

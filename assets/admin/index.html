@@ -136,6 +136,155 @@
 
     .method { font-weight: 700; color: var(--accent); }
     .err-cell { color: var(--red); font-size: 11px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Config editor ── */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .toolbar button,
+    .toolbar select {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.45rem 0.7rem;
+      font: inherit;
+    }
+    .toolbar button {
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .toolbar button:hover { border-color: var(--accent); background: rgba(99,102,241,0.12); }
+    .config-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+      gap: 1rem;
+    }
+    @media (max-width: 960px) { .config-layout { grid-template-columns: 1fr; } }
+    #config-editor {
+      width: 100%;
+      min-height: 420px;
+      resize: vertical;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font: inherit;
+      line-height: 1.45;
+    }
+    .config-sidecar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .config-sidecar p {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 0.75rem;
+    }
+    .config-sidecar code { color: var(--text); }
+    #config-status {
+      min-height: 1.25rem;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    #config-status.ok { color: var(--green); }
+    #config-status.err { color: var(--red); }
+    .topology-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    .topology-section + .topology-section { margin-top: 1rem; }
+    .topology-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+    .topology-list {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .flow-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem;
+      background: rgba(255,255,255,0.02);
+    }
+    .flow-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .flow-node {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem;
+      background: rgba(15,17,23,0.8);
+      min-width: 0;
+    }
+    .flow-node-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+      min-width: 0;
+    }
+    .flow-node-label strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .flow-node-meta {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+    .flow-arrow {
+      color: var(--accent);
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .flow-path {
+      margin-top: 0.6rem;
+      color: var(--muted);
+      font-size: 11px;
+      word-break: break-word;
+    }
+    .protocol-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: rgba(99,102,241,0.12);
+    }
+    .topology-empty {
+      color: var(--muted);
+      font-size: 12px;
+      padding: 0.35rem 0;
+    }
+    .topology-error {
+      color: var(--red);
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -199,6 +348,34 @@
     </div>
   </div>
 
+  <div class="section">
+    <h2>Configuration Draft</h2>
+    <div class="toolbar">
+      <button type="button" id="refresh-config-btn">Refresh Draft</button>
+      <button type="button" id="validate-config-btn">Validate Draft</button>
+      <button type="button" id="save-config-btn">Save Draft</button>
+      <select id="template-scope">
+        <option value="route">Route Template</option>
+        <option value="listener">Listener Template</option>
+      </select>
+      <select id="template-select"></select>
+      <button type="button" id="insert-template-btn">Insert Template</button>
+    </div>
+    <div id="config-status">Loading configuration…</div>
+    <div class="config-layout">
+      <textarea id="config-editor" spellcheck="false"></textarea>
+      <div class="config-sidecar">
+        <p>Edit the <code>draft</code> copy of the gateway config here. Validation runs against the same server-side config checks used at startup.</p>
+        <p>Templates insert protocol-specific route or listener blocks for common flows like HTTP → MQTT, HTTP → AMQP, and broker/webhook listeners.</p>
+        <p>This is a draft editor only. It does not hot-apply runtime changes yet.</p>
+      </div>
+    </div>
+    <div class="topology-panel">
+      <div class="topology-title">Visual Topology</div>
+      <div id="topology-content"></div>
+    </div>
+  </div>
+
   <!-- ── Live request log (SSE) ── -->
   <div class="section">
     <h2>Live Request Log</h2>
@@ -210,11 +387,7 @@
             <th>Route</th><th>Status</th><th>Latency ms</th><th>Target</th><th>Error</th>
           </tr>
         </thead>
-        <tbody id="live-log-body"
-               hx-ext="sse"
-               sse-connect="/admin/events"
-               sse-swap="beforeend"
-               hx-swap="beforeend">
+        <tbody id="live-log-body">
         </tbody>
       </table>
     </div>
@@ -310,6 +483,361 @@ function fmtNum(n) {
   return n.toString();
 }
 
+// ── Config draft editor ──────────────────────────────────────────────────────
+let configTemplates = { route_templates: [], listener_templates: [] };
+
+function setConfigStatus(message, kind = '') {
+  const el = document.getElementById('config-status');
+  el.textContent = message;
+  el.className = kind;
+}
+
+function populateTemplateOptions() {
+  const scope = document.getElementById('template-scope').value;
+  const select = document.getElementById('template-select');
+  const templates = scope === 'listener'
+    ? configTemplates.listener_templates
+    : configTemplates.route_templates;
+
+  select.innerHTML = templates.map((template, index) =>
+    `<option value="${index}">${template.label}</option>`
+  ).join('');
+}
+
+async function loadConfigSchema() {
+  const response = await fetch('/admin/api/config/schema');
+  if (!response.ok) {
+    throw new Error(`schema request failed with ${response.status}`);
+  }
+  configTemplates = await response.json();
+  populateTemplateOptions();
+}
+
+async function refreshConfig() {
+  setConfigStatus('Refreshing draft…');
+  const response = await fetch('/admin/api/config');
+  if (!response.ok) {
+    setConfigStatus(`Refresh failed (${response.status})`, 'err');
+    return;
+  }
+
+  const snapshot = await response.json();
+  document.getElementById('config-editor').value = JSON.stringify(snapshot.draft, null, 2);
+  setConfigStatus('Draft loaded from server.', 'ok');
+  renderTopology();
+}
+
+function parseEditorConfig() {
+  const raw = document.getElementById('config-editor').value;
+  return JSON.parse(raw);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function routeMethodsLabel(route) {
+  return Array.isArray(route.methods) && route.methods.length
+    ? route.methods.join(', ')
+    : 'ANY';
+}
+
+function routeTargetDetails(route) {
+  const transport = route.transport || {};
+  switch (transport.type) {
+    case 'http':
+      return {
+        label: 'HTTP Upstream',
+        meta: [
+          transport.url || 'missing url',
+          `timeout ${transport.timeout_secs ?? 30}s`,
+          transport.strip_prefix ? 'strip prefix enabled' : 'strip prefix disabled',
+        ],
+      };
+    case 'mqtt':
+      return {
+        label: 'MQTT Publish',
+        meta: [
+          transport.broker_url || 'missing broker',
+          `topic ${transport.topic || 'missing topic'}`,
+          `qos ${transport.qos ?? 0}${transport.retain ? ' · retain' : ''}`,
+        ],
+      };
+    case 'amqp':
+      return {
+        label: 'AMQP Publish',
+        meta: [
+          transport.broker_url || 'missing broker',
+          `exchange ${transport.exchange || '(default)'}`,
+          `routing key ${transport.routing_key || 'missing routing key'}`,
+        ],
+      };
+    case 'zmq':
+      return {
+        label: 'ZMQ Transport',
+        meta: [
+          transport.address || 'missing address',
+          `pattern ${transport.pattern || 'unknown'}`,
+          transport.topic ? `topic ${transport.topic}` : null,
+        ],
+      };
+    case 'graphql':
+      return {
+        label: 'GraphQL Upstream',
+        meta: [
+          transport.url || 'missing url',
+          `timeout ${transport.timeout_secs ?? 30}s`,
+        ],
+      };
+    case 'grpc':
+      return {
+        label: 'gRPC Upstream',
+        meta: [
+          transport.url || 'missing url',
+          `timeout ${transport.timeout_secs ?? 30}s`,
+        ],
+      };
+    case 'websocket':
+      return {
+        label: 'WebSocket Upstream',
+        meta: [
+          transport.url || 'missing url',
+          `timeout ${transport.timeout_secs ?? 30}s`,
+        ],
+      };
+    default:
+      return {
+        label: 'Unknown Transport',
+        meta: [transport.type || 'missing type'],
+      };
+  }
+}
+
+function listenerSourceDetails(listener) {
+  switch (listener.type) {
+    case 'zmq_pull':
+      return {
+        badge: 'ZMQ',
+        label: 'ZMQ Pull Listener',
+        meta: [`bind ${listener.bind || 'missing bind'}`],
+      };
+    case 'mqtt_sub':
+      return {
+        badge: 'MQTT',
+        label: 'MQTT Subscription',
+        meta: [
+          listener.broker_url || 'missing broker',
+          `topics ${(listener.topics || []).join(', ') || 'missing topics'}`,
+          `qos ${listener.qos ?? 0}`,
+        ],
+      };
+    case 'amqp_consume':
+      return {
+        badge: 'AMQP',
+        label: 'AMQP Consumer',
+        meta: [
+          listener.broker_url || 'missing broker',
+          `queue ${listener.queue || 'missing queue'}`,
+          listener.auto_ack ? 'auto ack enabled' : 'manual ack',
+        ],
+      };
+    default:
+      return {
+        badge: listener.type || 'unknown',
+        label: 'Unknown Listener',
+        meta: [listener.type || 'missing type'],
+      };
+  }
+}
+
+function flowCardHtml({ leftBadge, leftLabel, leftMeta, rightBadge, rightLabel, rightMeta, footer }) {
+  return `
+    <div class="flow-card">
+      <div class="flow-row">
+        <div class="flow-node">
+          <div class="flow-node-label">
+            <span class="protocol-badge">${escapeHtml(leftBadge)}</span>
+            <strong>${escapeHtml(leftLabel)}</strong>
+          </div>
+          <div class="flow-node-meta">${leftMeta.filter(Boolean).map(escapeHtml).join('<br>')}</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-node">
+          <div class="flow-node-label">
+            <span class="protocol-badge">${escapeHtml(rightBadge)}</span>
+            <strong>${escapeHtml(rightLabel)}</strong>
+          </div>
+          <div class="flow-node-meta">${rightMeta.filter(Boolean).map(escapeHtml).join('<br>')}</div>
+        </div>
+      </div>
+      ${footer ? `<div class="flow-path">${escapeHtml(footer)}</div>` : ''}
+    </div>
+  `;
+}
+
+function renderTopologyFromDraftObject(draft) {
+  const topology = document.getElementById('topology-content');
+  const routes = Array.isArray(draft.routes) ? draft.routes : [];
+  const listeners = Array.isArray(draft.listeners) ? draft.listeners : [];
+
+  const routeHtml = routes.length
+    ? routes.map(route => {
+        const transport = route.transport || {};
+        const target = routeTargetDetails(route);
+        return flowCardHtml({
+          leftBadge: 'HTTP',
+          leftLabel: `${routeMethodsLabel(route)} ${route.path || '(missing path)'}`,
+          leftMeta: ['client request into IronBabel'],
+          rightBadge: transport.type || 'unknown',
+          rightLabel: target.label,
+          rightMeta: target.meta,
+          footer: `Route flow: HTTP ${routeMethodsLabel(route)} ${route.path || '(missing path)'} -> ${target.label}`,
+        });
+      }).join('')
+    : '<div class="topology-empty">No routes in the current draft.</div>';
+
+  const listenerHtml = listeners.length
+    ? listeners.map(listener => {
+        const source = listenerSourceDetails(listener);
+        return flowCardHtml({
+          leftBadge: source.badge,
+          leftLabel: source.label,
+          leftMeta: source.meta,
+          rightBadge: 'HTTP',
+          rightLabel: 'Webhook Forward',
+          rightMeta: [listener.forward_to || 'missing forward_to'],
+          footer: `Listener flow: ${source.label} -> HTTP POST ${listener.forward_to || '(missing forward_to)'}`,
+        });
+      }).join('')
+    : '<div class="topology-empty">No listeners in the current draft.</div>';
+
+  topology.innerHTML = `
+    <div class="topology-section">
+      <div class="topology-title">Routes</div>
+      <div class="topology-list">${routeHtml}</div>
+    </div>
+    <div class="topology-section">
+      <div class="topology-title">Listeners</div>
+      <div class="topology-list">${listenerHtml}</div>
+    </div>
+  `;
+}
+
+function renderTopology() {
+  const topology = document.getElementById('topology-content');
+  try {
+    const draft = parseEditorConfig();
+    renderTopologyFromDraftObject(draft);
+  } catch (error) {
+    topology.innerHTML = `
+      <div class="topology-error">
+        The draft JSON cannot be visualized until it parses correctly.
+
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+  }
+}
+
+async function validateConfig() {
+  let payload;
+  try {
+    payload = parseEditorConfig();
+  } catch (error) {
+    setConfigStatus(`JSON parse error: ${error.message}`, 'err');
+    return;
+  }
+
+  setConfigStatus('Validating draft…');
+  const response = await fetch('/admin/api/config/validate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    setConfigStatus(`Validation request failed (${response.status})`, 'err');
+    return;
+  }
+
+  const result = await response.json();
+  if (result.valid) {
+    setConfigStatus('Draft is valid.', 'ok');
+  } else {
+    setConfigStatus(result.errors.join(' | '), 'err');
+  }
+}
+
+async function saveDraft() {
+  let payload;
+  try {
+    payload = parseEditorConfig();
+  } catch (error) {
+    setConfigStatus(`JSON parse error: ${error.message}`, 'err');
+    return;
+  }
+
+  setConfigStatus('Saving draft…');
+  const response = await fetch('/admin/api/config/draft', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    setConfigStatus(`Save request failed (${response.status})`, 'err');
+    return;
+  }
+
+  const result = await response.json();
+  if (result.saved) {
+    document.getElementById('config-editor').value = JSON.stringify(result.draft, null, 2);
+    setConfigStatus('Draft saved.', 'ok');
+    renderTopology();
+  } else {
+    setConfigStatus(result.errors.join(' | '), 'err');
+  }
+}
+
+function insertTemplate() {
+  let draft;
+  try {
+    draft = parseEditorConfig();
+  } catch (error) {
+    setConfigStatus(`JSON parse error: ${error.message}`, 'err');
+    return;
+  }
+
+  const scope = document.getElementById('template-scope').value;
+  const select = document.getElementById('template-select');
+  const templates = scope === 'listener'
+    ? configTemplates.listener_templates
+    : configTemplates.route_templates;
+  const template = templates[Number(select.value)];
+
+  if (!template) {
+    setConfigStatus('No template selected.', 'err');
+    return;
+  }
+
+  if (scope === 'listener') {
+    draft.listeners = Array.isArray(draft.listeners) ? draft.listeners : [];
+    draft.listeners.push(template.value);
+  } else {
+    draft.routes = Array.isArray(draft.routes) ? draft.routes : [];
+    draft.routes.push(template.value);
+  }
+
+  document.getElementById('config-editor').value = JSON.stringify(draft, null, 2);
+  setConfigStatus(`${template.label} inserted into draft.`, 'ok');
+  renderTopology();
+}
+
 // ── Routes table swap ────────────────────────────────────────────────────────
 document.body.addEventListener('htmx:beforeSwap', function(e) {
   if (e.detail.pathInfo && e.detail.pathInfo.requestPath === '/admin/api/routes') {
@@ -330,37 +858,105 @@ document.body.addEventListener('htmx:beforeSwap', function(e) {
   }
 });
 
-// ── SSE live log ─────────────────────────────────────────────────────────────
-// HTMX SSE sse-swap appends the raw SSE data as text; we intercept with a
-// custom event handler instead and build rows ourselves.
-document.addEventListener('htmx:sseMessage', function(e) {
+// ── Live log ─────────────────────────────────────────────────────────────────
+let liveLogStream;
+
+function renderLiveLogRow(d) {
+  const status = d.status_code;
+  const cls = status >= 500 ? 'badge-5' : status >= 400 ? 'badge-4' : status >= 300 ? 'badge-3' : 'badge-2';
+  const time = new Date(d.timestamp_ms).toLocaleTimeString();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td style="color:var(--muted)">${d.id}</td>
+    <td style="color:var(--muted)">${time}</td>
+    <td class="method">${d.method}</td>
+    <td><code>${d.path}</code></td>
+    <td style="color:var(--muted)">${d.matched_route ?? '—'}</td>
+    <td><span class="badge ${cls}">${status}</span></td>
+    <td>${d.latency_ms}</td>
+    <td style="color:var(--muted);font-size:11px">${d.upstream_target || '—'}</td>
+    <td class="err-cell">${d.error ?? ''}</td>
+  `;
+  return tr;
+}
+
+function trimLiveLogRows(limit = 100) {
+  const tbody = document.getElementById('live-log-body');
+  while (tbody.children.length > limit) {
+    tbody.removeChild(tbody.lastChild);
+  }
+}
+
+function prependLiveLogEntry(entry) {
+  const tbody = document.getElementById('live-log-body');
+  tbody.prepend(renderLiveLogRow(entry));
+  trimLiveLogRows();
+}
+
+async function loadRecentRequests() {
+  const tbody = document.getElementById('live-log-body');
+  tbody.innerHTML = '<tr><td colspan="9" style="color:var(--muted)">Loading recent requests…</td></tr>';
+
   try {
-    const d = JSON.parse(e.detail.data);
-    const tbody = document.getElementById('live-log-body');
-    const status = d.status_code;
-    const cls = status >= 500 ? 'badge-5' : status >= 400 ? 'badge-4' : status >= 300 ? 'badge-3' : 'badge-2';
-    const time = new Date(d.timestamp_ms).toLocaleTimeString();
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td style="color:var(--muted)">${d.id}</td>
-      <td style="color:var(--muted)">${time}</td>
-      <td class="method">${d.method}</td>
-      <td><code>${d.path}</code></td>
-      <td style="color:var(--muted)">${d.matched_route ?? '—'}</td>
-      <td><span class="badge ${cls}">${status}</span></td>
-      <td>${d.latency_ms}</td>
-      <td style="color:var(--muted);font-size:11px">${d.upstream_target || '—'}</td>
-      <td class="err-cell">${d.error ?? ''}</td>
-    `;
-    tbody.prepend(tr);
-    // Cap visible rows at 100
-    while (tbody.children.length > 100) tbody.removeChild(tbody.lastChild);
-  } catch(_) {}
-});
+    const response = await fetch('/admin/api/requests/recent?n=25');
+    if (!response.ok) {
+      throw new Error(`recent requests request failed with ${response.status}`);
+    }
+
+    const entries = await response.json();
+    tbody.innerHTML = '';
+
+    if (!entries.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="color:var(--muted)">No requests recorded yet</td></tr>';
+      return;
+    }
+
+    entries
+      .slice()
+      .reverse()
+      .forEach(entry => prependLiveLogEntry(entry));
+  } catch (error) {
+    tbody.innerHTML = `<tr><td colspan="9" style="color:var(--red)">Live log failed to load: ${error.message}</td></tr>`;
+  }
+}
+
+function connectLiveLog() {
+  if (!window.EventSource) {
+    return;
+  }
+
+  if (liveLogStream) {
+    liveLogStream.close();
+  }
+
+  liveLogStream = new EventSource('/admin/events');
+  liveLogStream.onmessage = function(event) {
+    try {
+      const entry = JSON.parse(event.data);
+      const tbody = document.getElementById('live-log-body');
+      if (tbody.children.length === 1 && tbody.textContent.includes('No requests recorded yet')) {
+        tbody.innerHTML = '';
+      }
+      prependLiveLogEntry(entry);
+    } catch (_) {}
+  };
+}
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   initCharts();
+  document.getElementById('template-scope').addEventListener('change', populateTemplateOptions);
+  document.getElementById('refresh-config-btn').addEventListener('click', refreshConfig);
+  document.getElementById('validate-config-btn').addEventListener('click', validateConfig);
+  document.getElementById('save-config-btn').addEventListener('click', saveDraft);
+  document.getElementById('insert-template-btn').addEventListener('click', insertTemplate);
+  document.getElementById('config-editor').addEventListener('input', renderTopology);
+  loadRecentRequests();
+  connectLiveLog();
+  renderTopology();
+  loadConfigSchema()
+    .then(refreshConfig)
+    .catch(error => setConfigStatus(`Config editor setup failed: ${error.message}`, 'err'));
   htmx.process(document.body);
 });
 </script>

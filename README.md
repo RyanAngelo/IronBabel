@@ -1,12 +1,13 @@
 # Iron Babel
 
-IronBabel is a protocol bridge, not just an API gateway. It connects HTTP APIs to gRPC, GraphQL, WebSockets, MQTT, and ZeroMQ in one lightweight runtime.
+IronBabel is a protocol bridge, not just an API gateway. It connects HTTP APIs to gRPC, GraphQL, WebSockets, MQTT, AMQP/RabbitMQ, and ZeroMQ in one lightweight runtime.
 
 ## Features
 
 - Protocol translation between:
   - REST/HTTP ↔ GraphQL
   - REST/HTTP ↔ gRPC
+  - HTTP ↔ AMQP publish/consumer webhook flows
   - WebSockets ↔ HTTP/SSE
   - WebSockets ↔ REST polling
   - HTTP ↔ MQTT publish/webhook flows
@@ -20,7 +21,7 @@ IronBabel is a protocol bridge, not just an API gateway. It connects HTTP APIs t
 
 ![IronBabel Monitoring Dashboard](https://www.ryanangelo.com/projects/iron-babel/screenshots/monitoring-dashboard.png)
 
-The built-in admin dashboard is available at `http://<host>:<port>/admin/` and provides real-time request metrics, latency percentiles, error rates, and per-route stats.
+The built-in admin dashboard is available at `http://<host>:<port>/admin/` and provides real-time request metrics, latency percentiles, error rates, per-route stats, and a draft configuration editor with transport templates for common route and listener setups.
 
 ## Project Structure
 

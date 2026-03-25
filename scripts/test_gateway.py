@@ -12,6 +12,8 @@ Usage:
     python scripts/test_gateway.py --gateway http://127.0.0.1:8080
     python scripts/test_gateway.py --no-upstream  # if your real upstreams are already up
     python scripts/test_gateway.py --no-zmq       # skip ZMQ scenarios
+    python scripts/test_gateway.py --mqtt         # add HTTP -> MQTT route scenario
+    python scripts/test_gateway.py --amqp         # add HTTP -> AMQP route scenario
 
 Requires only Python 3.8+ standard library for HTTP tests.
 ZMQ scenarios additionally require:  pip install pyzmq
@@ -343,6 +345,31 @@ def make_zmq_scenarios(gateway: str, pull_received: list) -> list:
     ]
 
 
+def make_broker_scenarios(gateway: str, mqtt_expect_status: int, amqp_expect_status: int,
+                          include_mqtt: bool, include_amqp: bool) -> list:
+    scenarios = []
+
+    if include_mqtt:
+        scenarios.append({
+            "label": f"POST /mqtt/events → MQTT publish route  (expect {mqtt_expect_status})",
+            "method": "POST",
+            "url": f"{gateway}/mqtt/events",
+            "body": {"event": "device.ping", "device_id": "sim-001", "ts": int(time.time())},
+            "expect_status": mqtt_expect_status,
+        })
+
+    if include_amqp:
+        scenarios.append({
+            "label": f"POST /amqp/events → AMQP publish route  (expect {amqp_expect_status})",
+            "method": "POST",
+            "url": f"{gateway}/amqp/events",
+            "body": {"event": "job.created", "job_id": "job-001", "ts": int(time.time())},
+            "expect_status": amqp_expect_status,
+        })
+
+    return scenarios
+
+
 def _verify_push_received(pull_received: list, expected_event: str, wait_secs: float = 1.0) -> bool:
     """Poll until the PUSH receiver has seen a frame containing expected_event."""
     deadline = time.time() + wait_secs
@@ -495,7 +522,8 @@ def wait_for_gateway(gateway: str, retries: int = 10) -> bool:
 # ─────────────────────────────────────────────────────────────────────────────
 # Suite runners
 # ─────────────────────────────────────────────────────────────────────────────
-def run_suite(gateway: str, pull_received: list, run_zmq: bool) -> tuple:
+def run_suite(gateway: str, pull_received: list, run_zmq: bool, include_mqtt: bool,
+              include_amqp: bool, mqtt_expect_status: int, amqp_expect_status: int) -> tuple:
     passed = failed = 0
 
     print(bold("  HTTP scenarios"))
@@ -506,6 +534,23 @@ def run_suite(gateway: str, pull_received: list, run_zmq: bool) -> tuple:
         ok = print_result(s, status, body, elapsed)
         if ok: passed += 1
         else: failed += 1
+
+    broker_scenarios = make_broker_scenarios(
+        gateway,
+        mqtt_expect_status,
+        amqp_expect_status,
+        include_mqtt,
+        include_amqp,
+    )
+    if broker_scenarios:
+        print(bold("  MQTT / AMQP scenarios"))
+        print(dim("  " + "─" * 56))
+        print()
+        for s in broker_scenarios:
+            status, body, elapsed = http(s["method"], s["url"], body=s.get("body"), headers=s.get("headers"))
+            ok = print_result(s, status, body, elapsed)
+            if ok: passed += 1
+            else: failed += 1
 
     if not run_zmq:
         return passed, failed
@@ -537,8 +582,16 @@ def run_suite(gateway: str, pull_received: list, run_zmq: bool) -> tuple:
     return passed, failed
 
 
-def run_continuous(gateway: str, delay: float = 0.5):
+def run_continuous(gateway: str, delay: float = 0.5, include_mqtt: bool = False, include_amqp: bool = False,
+                   mqtt_expect_status: int = 502, amqp_expect_status: int = 502):
     scenarios = make_http_scenarios(gateway)
+    scenarios.extend(make_broker_scenarios(
+        gateway,
+        mqtt_expect_status,
+        amqp_expect_status,
+        include_mqtt,
+        include_amqp,
+    ))
     idx = 0
     total = 0
     print(f"  Sending continuous traffic to {gateway}  (Ctrl-C to stop)\n")
@@ -575,6 +628,14 @@ def main():
                         help="Loop continuously (HTTP only; Ctrl-C to stop)")
     parser.add_argument("--delay", type=float, default=0.5,
                         help="Delay between requests in continuous mode")
+    parser.add_argument("--mqtt", action="store_true",
+                        help="Add HTTP -> MQTT publish route scenarios")
+    parser.add_argument("--amqp", action="store_true",
+                        help="Add HTTP -> AMQP publish route scenarios")
+    parser.add_argument("--mqtt-expect-status", type=int, default=502,
+                        help="Expected HTTP status for the MQTT publish route scenario")
+    parser.add_argument("--amqp-expect-status", type=int, default=502,
+                        help="Expected HTTP status for the AMQP publish route scenario")
     parser.add_argument("--upstream-ports", nargs="+", type=int, default=[9000, 9001])
     parser.add_argument("--zmq-rep-port",  type=int, default=5555)
     parser.add_argument("--zmq-push-port", type=int, default=5556)
@@ -632,10 +693,25 @@ def main():
 
     # ── Run ───────────────────────────────────────────────────────────────────
     if args.continuous:
-        run_continuous(args.gateway, delay=args.delay)
+        run_continuous(
+            args.gateway,
+            delay=args.delay,
+            include_mqtt=args.mqtt,
+            include_amqp=args.amqp,
+            mqtt_expect_status=args.mqtt_expect_status,
+            amqp_expect_status=args.amqp_expect_status,
+        )
         return
 
-    passed, failed = run_suite(args.gateway, pull_received, run_zmq)
+    passed, failed = run_suite(
+        args.gateway,
+        pull_received,
+        run_zmq,
+        args.mqtt,
+        args.amqp,
+        args.mqtt_expect_status,
+        args.amqp_expect_status,
+    )
 
     print(bold("═" * 62))
     print_admin_metrics(args.gateway)

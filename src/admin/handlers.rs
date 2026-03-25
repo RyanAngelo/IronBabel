@@ -13,7 +13,8 @@ use futures::Stream;
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 
 use crate::admin::types::{
-    BucketPoint, HealthResponse, MetricsSummary, RequestLogEntry, RouteInfo,
+    BucketPoint, ConfigDraftResponse, ConfigSnapshot, ConfigTemplate, ConfigUiSchema,
+    ConfigValidationResponse, HealthResponse, MetricsSummary, RequestLogEntry, RouteInfo,
 };
 use crate::config::TransportConfig;
 use crate::core::gateway::AppState;
@@ -27,7 +28,7 @@ pub async fn admin_health(State(state): State<AppState>) -> Json<HealthResponse>
         status: "ok".to_string(),
         uptime_secs: state.metrics.uptime_secs(),
         version: env!("CARGO_PKG_VERSION").to_string(),
-        active_routes: state.config_routes.len(),
+        active_routes: state.config_store.active().await.routes.len(),
     })
 }
 
@@ -90,8 +91,8 @@ pub async fn admin_metrics(State(state): State<AppState>) -> Json<MetricsSummary
 
 pub async fn admin_routes(State(state): State<AppState>) -> Json<Vec<RouteInfo>> {
     let route_stats = state.metrics.get_route_stats().await;
-    let routes: Vec<RouteInfo> = state
-        .config_routes
+    let config_routes = state.config_store.active().await.routes;
+    let routes: Vec<RouteInfo> = config_routes
         .iter()
         .map(|r| {
             let stats = route_stats.get(&r.path).cloned().unwrap_or_default();
@@ -119,6 +120,9 @@ pub async fn admin_routes(State(state): State<AppState>) -> Json<Vec<RouteInfo>>
                 TransportConfig::Mqtt(cfg) => {
                     ("mqtt".to_string(), cfg.broker_url.clone(), cfg.timeout_secs)
                 }
+                TransportConfig::Amqp(cfg) => {
+                    ("amqp".to_string(), cfg.broker_url.clone(), cfg.timeout_secs)
+                }
             };
             RouteInfo {
                 path: r.path.clone(),
@@ -133,6 +137,134 @@ pub async fn admin_routes(State(state): State<AppState>) -> Json<Vec<RouteInfo>>
         })
         .collect();
     Json(routes)
+}
+
+pub async fn admin_config(State(state): State<AppState>) -> Json<ConfigSnapshot> {
+    let (active, draft) = state.config_store.snapshot().await;
+    Json(ConfigSnapshot { active, draft })
+}
+
+pub async fn admin_config_schema() -> Json<ConfigUiSchema> {
+    Json(ConfigUiSchema {
+        route_templates: vec![
+            ConfigTemplate {
+                kind: "http".to_string(),
+                label: "HTTP Route".to_string(),
+                value: serde_json::json!({
+                    "path": "/api/new",
+                    "methods": ["GET"],
+                    "transport": {
+                        "type": "http",
+                        "url": "http://127.0.0.1:9000",
+                        "timeout_secs": 30,
+                        "strip_prefix": false
+                    }
+                }),
+            },
+            ConfigTemplate {
+                kind: "mqtt".to_string(),
+                label: "MQTT Publish Route".to_string(),
+                value: serde_json::json!({
+                    "path": "/mqtt/events",
+                    "methods": ["POST"],
+                    "transport": {
+                        "type": "mqtt",
+                        "broker_url": "mqtt://127.0.0.1:1883",
+                        "topic": "events.http",
+                        "qos": 1,
+                        "retain": false,
+                        "timeout_secs": 10
+                    }
+                }),
+            },
+            ConfigTemplate {
+                kind: "amqp".to_string(),
+                label: "AMQP Publish Route".to_string(),
+                value: serde_json::json!({
+                    "path": "/amqp/events",
+                    "methods": ["POST"],
+                    "transport": {
+                        "type": "amqp",
+                        "broker_url": "amqp://guest:guest@127.0.0.1:5672/%2f",
+                        "exchange": "",
+                        "routing_key": "events.http",
+                        "mandatory": false,
+                        "persistent": true,
+                        "timeout_secs": 10
+                    }
+                }),
+            },
+        ],
+        listener_templates: vec![
+            ConfigTemplate {
+                kind: "zmq_pull".to_string(),
+                label: "ZMQ Pull Listener".to_string(),
+                value: serde_json::json!({
+                    "type": "zmq_pull",
+                    "bind": "127.0.0.1:5557",
+                    "forward_to": "http://127.0.0.1:9000/zmq-webhook"
+                }),
+            },
+            ConfigTemplate {
+                kind: "mqtt_sub".to_string(),
+                label: "MQTT Subscribe Listener".to_string(),
+                value: serde_json::json!({
+                    "type": "mqtt_sub",
+                    "broker_url": "mqtt://127.0.0.1:1883",
+                    "topics": ["events.device"],
+                    "qos": 1,
+                    "forward_to": "http://127.0.0.1:9000/mqtt-webhook"
+                }),
+            },
+            ConfigTemplate {
+                kind: "amqp_consume".to_string(),
+                label: "AMQP Consumer Listener".to_string(),
+                value: serde_json::json!({
+                    "type": "amqp_consume",
+                    "broker_url": "amqp://guest:guest@127.0.0.1:5672/%2f",
+                    "queue": "events.inbox",
+                    "auto_ack": false,
+                    "forward_to": "http://127.0.0.1:9000/amqp-webhook"
+                }),
+            },
+        ],
+    })
+}
+
+pub async fn admin_validate_config(
+    Json(config): Json<crate::config::GatewayConfig>,
+) -> Json<ConfigValidationResponse> {
+    match config.validate() {
+        Ok(()) => Json(ConfigValidationResponse {
+            valid: true,
+            errors: vec![],
+        }),
+        Err(err) => Json(ConfigValidationResponse {
+            valid: false,
+            errors: vec![err.to_string()],
+        }),
+    }
+}
+
+pub async fn admin_save_draft_config(
+    State(state): State<AppState>,
+    Json(config): Json<crate::config::GatewayConfig>,
+) -> Json<ConfigDraftResponse> {
+    match config.validate() {
+        Ok(()) => {
+            state.config_store.save_draft(config.clone()).await;
+            Json(ConfigDraftResponse {
+                saved: true,
+                errors: vec![],
+                draft: config,
+            })
+        }
+        Err(err) => Json(ConfigDraftResponse {
+            saved: false,
+            errors: vec![err.to_string()],
+            draft: config,
+        }),
+    }
 }
 
 #[derive(serde::Deserialize)]
