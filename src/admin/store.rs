@@ -84,7 +84,9 @@ impl MetricsStore {
 
         // Update totals
         self.total_requests.fetch_add(1, Ordering::Relaxed);
-        let is_error = status_code >= 500 || error.is_some();
+        // Both client (4xx) and server (5xx) responses count as errors, plus any
+        // transport-level error captured out of band.
+        let is_error = status_code >= 400 || error.is_some();
         if is_error {
             self.total_errors.fetch_add(1, Ordering::Relaxed);
         }
@@ -196,11 +198,11 @@ impl MetricsStore {
         }
         let mut sorted: Vec<u64> = latencies.iter().cloned().collect();
         sorted.sort_unstable();
-        let len = sorted.len();
-        let p50 = sorted[len * 50 / 100] as f64;
-        let p95 = sorted[(len * 95 / 100).min(len - 1)] as f64;
-        let p99 = sorted[(len * 99 / 100).min(len - 1)] as f64;
-        (p50, p95, p99)
+        (
+            percentile(&sorted, 50.0),
+            percentile(&sorted, 95.0),
+            percentile(&sorted, 99.0),
+        )
     }
 
     pub async fn get_time_buckets(&self) -> Vec<TimeBucket> {
@@ -220,7 +222,11 @@ impl MetricsStore {
             .filter(|b| b.timestamp_secs >= now_secs.saturating_sub(window))
             .map(|b| b.request_count)
             .sum();
-        count as f64 / window as f64
+        // Divide by the actual observed span, not always the full window: right
+        // after startup fewer than `window` seconds of data exist, so dividing
+        // by the full window would systematically under-report RPS.
+        let divisor = window.min(self.uptime_secs().max(1)).max(1);
+        count as f64 / divisor as f64
     }
 
     /// Called every second by the background tick task to keep the bucket timeline current.
@@ -247,5 +253,84 @@ impl MetricsStore {
 impl Default for MetricsStore {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Nearest-rank percentile over an ascending-sorted slice.
+///
+/// `p` is in the range `[0, 100]`. The rank is `ceil(p/100 * n)` (1-based),
+/// clamped to the slice bounds. For example the median of `[10, 1000]` is `10`
+/// (the lower of the two), not `1000`.
+fn percentile(sorted_asc: &[u64], p: f64) -> f64 {
+    if sorted_asc.is_empty() {
+        return 0.0;
+    }
+    let n = sorted_asc.len();
+    let rank = ((p / 100.0) * n as f64).ceil() as usize;
+    let idx = rank.saturating_sub(1).min(n - 1);
+    sorted_asc[idx] as f64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn percentile_empty_is_zero() {
+        assert_eq!(percentile(&[], 50.0), 0.0);
+    }
+
+    #[test]
+    fn percentile_median_picks_lower_of_two() {
+        // Regression: previously p50 of [10, 1000] returned 1000 (the max).
+        assert_eq!(percentile(&[10, 1000], 50.0), 10.0);
+    }
+
+    #[test]
+    fn percentile_single_element() {
+        assert_eq!(percentile(&[42], 50.0), 42.0);
+        assert_eq!(percentile(&[42], 95.0), 42.0);
+        assert_eq!(percentile(&[42], 99.0), 42.0);
+    }
+
+    #[test]
+    fn percentile_known_distribution() {
+        let data: Vec<u64> = (1..=100).collect(); // 1..=100 ascending
+        assert_eq!(percentile(&data, 50.0), 50.0);
+        assert_eq!(percentile(&data, 95.0), 95.0);
+        assert_eq!(percentile(&data, 99.0), 99.0);
+        assert_eq!(percentile(&data, 100.0), 100.0);
+    }
+
+    #[test]
+    fn percentile_never_out_of_bounds() {
+        // p just over a boundary must still clamp to the last element.
+        assert_eq!(percentile(&[1, 2, 3], 100.0), 3.0);
+    }
+
+    #[tokio::test]
+    async fn counts_4xx_as_errors() {
+        let store = MetricsStore::new();
+        store
+            .record_request("GET", "/x", Some("/x".to_string()), "u", 404, 1, None)
+            .await;
+        store
+            .record_request("GET", "/y", Some("/y".to_string()), "u", 200, 1, None)
+            .await;
+        assert_eq!(store.total_requests(), 2);
+        assert_eq!(store.total_errors(), 1);
+    }
+
+    #[tokio::test]
+    async fn get_percentiles_uses_nearest_rank() {
+        let store = MetricsStore::new();
+        store
+            .record_request("GET", "/x", None, "u", 200, 10, None)
+            .await;
+        store
+            .record_request("GET", "/y", None, "u", 200, 1000, None)
+            .await;
+        let (p50, _p95, _p99) = store.get_percentiles().await;
+        assert_eq!(p50, 10.0);
     }
 }

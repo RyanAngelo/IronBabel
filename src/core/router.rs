@@ -21,12 +21,18 @@ impl Router {
     /// - The route's `path` must be a prefix of `path`.
     /// - If the route's `methods` list is non-empty, `method` must appear in it
     ///   (case-insensitive).
-    /// - If `method` contains non-ASCII or control characters, `None` is returned
-    ///   immediately (security guard against malformed input).
+    /// - An empty method, or a method containing characters other than ASCII
+    ///   alphanumerics and `-`, returns `None` immediately (security guard
+    ///   against malformed input / CRLF injection, while still permitting
+    ///   extension methods such as `M-SEARCH`).
     /// - Among all matching routes the longest prefix wins (guaranteed by sort order).
     pub fn route(&self, method: &str, path: &str) -> Option<&RouteConfig> {
-        // Security: reject methods containing non-ASCII or control characters.
-        if !method.chars().all(|c| c.is_ascii_alphanumeric()) {
+        // Security: reject empty methods and any method containing characters
+        // outside ASCII alphanumerics and '-' (blocks control chars / CRLF
+        // injection but allows hyphenated extension methods like M-SEARCH).
+        if method.is_empty()
+            || !method.chars().all(|c| c.is_ascii_alphanumeric() || c == '-')
+        {
             return None;
         }
 
@@ -97,5 +103,17 @@ mod tests {
     fn empty_methods_allows_any() {
         let router = Router::new(vec![make_route("/health", &[])]);
         assert!(router.route("DELETE", "/health").is_some());
+    }
+
+    #[test]
+    fn allows_hyphenated_extension_method() {
+        let router = Router::new(vec![make_route("/upnp", &["M-SEARCH"])]);
+        assert!(router.route("M-SEARCH", "/upnp").is_some());
+    }
+
+    #[test]
+    fn rejects_empty_method() {
+        let router = Router::new(vec![make_route("/", &[])]);
+        assert!(router.route("", "/").is_none());
     }
 }

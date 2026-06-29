@@ -13,8 +13,9 @@ use futures::Stream;
 use tokio_stream::{wrappers::BroadcastStream, StreamExt};
 
 use crate::admin::types::{
-    BucketPoint, ConfigDraftResponse, ConfigSnapshot, ConfigTemplate, ConfigUiSchema,
-    ConfigValidationResponse, HealthResponse, MetricsSummary, RequestLogEntry, RouteInfo,
+    BucketPoint, ConfigActivateResponse, ConfigDraftResponse, ConfigSnapshot, ConfigTemplate,
+    ConfigUiSchema, ConfigValidationResponse, HealthResponse, MetricsSummary, RequestLogEntry,
+    RouteInfo,
 };
 use crate::config::TransportConfig;
 use crate::core::gateway::AppState;
@@ -263,6 +264,28 @@ pub async fn admin_save_draft_config(
             saved: false,
             errors: vec![err.to_string()],
             draft: config,
+        }),
+    }
+}
+
+/// Promotes the current draft configuration to active (after re-validation).
+///
+/// Live request routing is fixed at startup, so this updates the active config
+/// reported by the admin API; applying routing changes to running traffic still
+/// requires a restart.
+pub async fn admin_activate_draft_config(
+    State(state): State<AppState>,
+) -> Json<ConfigActivateResponse> {
+    match state.config_store.activate_draft().await {
+        Ok(active) => Json(ConfigActivateResponse {
+            activated: true,
+            errors: vec![],
+            active,
+        }),
+        Err(err) => Json(ConfigActivateResponse {
+            activated: false,
+            errors: vec![err.to_string()],
+            active: state.config_store.active().await,
         }),
     }
 }

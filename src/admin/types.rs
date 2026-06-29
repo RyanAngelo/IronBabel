@@ -76,6 +76,13 @@ pub struct ConfigDraftResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ConfigActivateResponse {
+    pub activated: bool,
+    pub errors: Vec<String>,
+    pub active: GatewayConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ConfigUiSchema {
     pub route_templates: Vec<ConfigTemplate>,
     pub listener_templates: Vec<ConfigTemplate>,

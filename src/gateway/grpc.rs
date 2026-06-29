@@ -9,11 +9,18 @@ use super::ProtocolGateway;
 
 pub struct GrpcGateway {
     protocol: Arc<dyn Protocol>,
+    /// Shared HTTP/2 client (gRPC requires HTTP/2). Built once so the
+    /// connection pool is reused; per-request timeouts are applied per call.
+    client: reqwest::Client,
 }
 
 impl GrpcGateway {
     pub fn new(protocol: Arc<dyn Protocol>) -> Self {
-        Self { protocol }
+        let client = reqwest::Client::builder()
+            .http2_prior_knowledge() // gRPC requires HTTP/2
+            .build()
+            .expect("failed to build gRPC HTTP/2 client");
+        Self { protocol, client }
     }
 
     /// Proxy a gRPC request to an upstream gRPC server over HTTP/2.
@@ -49,13 +56,12 @@ impl GrpcGateway {
             return Err(Error::Protocol("invalid path".to_string()));
         }
 
-        let url = format!("{}{}", target_base.trim_end_matches('/'), path);
+        // SSRF guard: the method path is concatenated onto the trusted base URL.
+        if !crate::protocols::http::path_is_safe(path) {
+            return Err(Error::Protocol("invalid path".to_string()));
+        }
 
-        let client = reqwest::ClientBuilder::new()
-            .timeout(Duration::from_secs(timeout_secs))
-            .http2_prior_knowledge() // gRPC requires HTTP/2
-            .build()
-            .map_err(|e| Error::Protocol(e.to_string()))?;
+        let url = format!("{}{}", target_base.trim_end_matches('/'), path);
 
         // Strip hop-by-hop and Host; we set gRPC-required headers explicitly.
         let sanitized = crate::protocols::http::strip_hop_by_hop_headers(headers);
@@ -70,8 +76,10 @@ impl GrpcGateway {
             })
             .collect();
 
-        let mut req = client
+        let mut req = self
+            .client
             .post(&url)
+            .timeout(Duration::from_secs(timeout_secs))
             .header("content-type", "application/grpc")
             .header("te", "trailers")
             .body(body);
@@ -83,10 +91,13 @@ impl GrpcGateway {
         let response = req.send().await.map_err(|e| Error::Protocol(e.to_string()))?;
         let status = response.status().as_u16();
 
+        // Skip response headers whose value is not valid UTF-8.
         let raw_resp_headers: Vec<(String, String)> = response
             .headers()
             .iter()
-            .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
+            .filter_map(|(k, v)| {
+                v.to_str().ok().map(|val| (k.as_str().to_string(), val.to_string()))
+            })
             .collect();
         let resp_headers = crate::protocols::http::strip_hop_by_hop_headers(&raw_resp_headers);
 

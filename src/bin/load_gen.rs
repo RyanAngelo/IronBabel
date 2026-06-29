@@ -123,6 +123,17 @@ fn build_routes(cfg: &Config) -> Vec<Route> {
 // Traffic pump
 // ---------------------------------------------------------------------------
 
+/// Milliseconds to delay `worker_id` so that `rps` workers are spread evenly
+/// across the first second.
+///
+/// Must multiply before dividing: `1000 / rps * worker_id` collapses to 0 for
+/// every worker once `rps > 1000` (integer division), front-loading all load
+/// into one instant.
+fn stagger_ms(rps: u64, worker_id: u64) -> u64 {
+    let rps = rps.max(1);
+    1000u64.saturating_mul(worker_id) / rps
+}
+
 async fn pump_traffic(
     client: Arc<Client>,
     gateway: String,
@@ -141,8 +152,7 @@ async fn pump_traffic(
 
         tokio::spawn(async move {
             // Stagger workers evenly across the first second.
-            let stagger_ms = 1000 / rps * worker_id;
-            tokio::time::sleep(Duration::from_millis(stagger_ms)).await;
+            tokio::time::sleep(Duration::from_millis(stagger_ms(rps, worker_id))).await;
 
             let mut ticker = interval(Duration::from_secs(1));
             let mut seq: u64 = worker_id;
@@ -380,6 +390,28 @@ mod tests {
         let routes = build_routes(&cfg);
         assert!(routes.iter().any(|route| route.path == "/mqtt/events"));
         assert!(routes.iter().any(|route| route.path == "/amqp/events"));
+    }
+
+    #[test]
+    fn stagger_spreads_workers_across_one_second() {
+        // 10 workers over 1s → 0,100,200,...,900 ms.
+        assert_eq!(stagger_ms(10, 0), 0);
+        assert_eq!(stagger_ms(10, 5), 500);
+        assert_eq!(stagger_ms(10, 9), 900);
+    }
+
+    #[test]
+    fn stagger_does_not_collapse_at_high_rps() {
+        // Regression: `1000 / rps * worker_id` returned 0 for every worker when
+        // rps > 1000. The corrected formula must still spread workers out.
+        assert_eq!(stagger_ms(2000, 0), 0);
+        assert_eq!(stagger_ms(2000, 1000), 500);
+        assert_eq!(stagger_ms(2000, 1999), 999);
+    }
+
+    #[test]
+    fn stagger_handles_zero_rps() {
+        assert_eq!(stagger_ms(0, 0), 0);
     }
 
     #[test]

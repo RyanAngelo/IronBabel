@@ -1,10 +1,22 @@
 use std::time::Duration;
 use axum::{
-    extract::ws::{Message as AxumMessage, WebSocket, WebSocketUpgrade},
+    extract::ws::{CloseFrame as AxumCloseFrame, Message as AxumMessage, WebSocket, WebSocketUpgrade},
     response::Response,
 };
 use futures::{SinkExt, StreamExt};
-use tokio_tungstenite::{connect_async, tungstenite::Message as TungsteniteMessage};
+use tokio_tungstenite::{
+    connect_async_with_config,
+    tungstenite::protocol::{CloseFrame as TungCloseFrame, WebSocketConfig},
+    tungstenite::Message as TungsteniteMessage,
+};
+
+/// Maximum size of a single complete WebSocket message proxied in either
+/// direction. Caps memory use per connection (mirrors the 10 MB HTTP body
+/// limit) and prevents a malicious client or backend from exhausting memory
+/// with an unbounded frame.
+const MAX_WS_MESSAGE_SIZE: usize = 10 * 1024 * 1024;
+/// Maximum size of a single WebSocket frame.
+const MAX_WS_FRAME_SIZE: usize = 10 * 1024 * 1024;
 
 /// Handle a WebSocket upgrade request and proxy frames bidirectionally to
 /// the backend WebSocket server at `backend_url`.
@@ -17,9 +29,12 @@ pub fn handle_websocket_upgrade(
     backend_url: String,
     connect_timeout_secs: u64,
 ) -> Response {
-    upgrade.on_upgrade(move |client_ws| {
-        proxy_websocket(client_ws, backend_url, connect_timeout_secs)
-    })
+    upgrade
+        .max_message_size(MAX_WS_MESSAGE_SIZE)
+        .max_frame_size(MAX_WS_FRAME_SIZE)
+        .on_upgrade(move |client_ws| {
+            proxy_websocket(client_ws, backend_url, connect_timeout_secs)
+        })
 }
 
 async fn proxy_websocket(client_ws: WebSocket, backend_url: String, connect_timeout_secs: u64) {
@@ -31,9 +46,17 @@ async fn proxy_websocket(client_ws: WebSocket, backend_url: String, connect_time
         }
     };
 
+    // Cap message/frame size on the backend connection too, so an oversized
+    // frame from the backend cannot exhaust memory on its way to the client.
+    let ws_config = WebSocketConfig {
+        max_message_size: Some(MAX_WS_MESSAGE_SIZE),
+        max_frame_size: Some(MAX_WS_FRAME_SIZE),
+        ..Default::default()
+    };
+
     let connect_result = tokio::time::timeout(
         Duration::from_secs(connect_timeout_secs),
-        connect_async(&backend_url),
+        connect_async_with_config(&backend_url, Some(ws_config), false),
     )
     .await;
 
@@ -62,13 +85,17 @@ async fn proxy_websocket(client_ws: WebSocket, backend_url: String, connect_time
         while let Some(msg_result) = client_stream.next().await {
             match msg_result {
                 Ok(msg) => {
-                    if matches!(msg, AxumMessage::Close(_)) {
-                        break;
-                    }
+                    // Forward the close frame (with its code/reason) to the
+                    // backend before stopping, so the peer learns *why* the
+                    // session ended rather than just seeing a bare close.
+                    let is_close = matches!(msg, AxumMessage::Close(_));
                     if let Some(t_msg) = axum_to_tungstenite(msg) {
                         if backend_sink.send(t_msg).await.is_err() {
                             break;
                         }
+                    }
+                    if is_close {
+                        break;
                     }
                 }
                 Err(e) => {
@@ -85,13 +112,14 @@ async fn proxy_websocket(client_ws: WebSocket, backend_url: String, connect_time
         while let Some(msg_result) = backend_stream.next().await {
             match msg_result {
                 Ok(msg) => {
-                    if matches!(msg, TungsteniteMessage::Close(_)) {
-                        break;
-                    }
+                    let is_close = matches!(msg, TungsteniteMessage::Close(_));
                     if let Some(a_msg) = tungstenite_to_axum(msg) {
                         if client_sink.send(a_msg).await.is_err() {
                             break;
                         }
+                    }
+                    if is_close {
+                        break;
                     }
                 }
                 Err(e) => {
@@ -119,7 +147,13 @@ fn axum_to_tungstenite(msg: AxumMessage) -> Option<TungsteniteMessage> {
         AxumMessage::Binary(b) => Some(TungsteniteMessage::Binary(b.to_vec())),
         AxumMessage::Ping(b) => Some(TungsteniteMessage::Ping(b.to_vec())),
         AxumMessage::Pong(b) => Some(TungsteniteMessage::Pong(b.to_vec())),
-        AxumMessage::Close(_) => None,
+        // Preserve the close code and reason across the protocol boundary.
+        AxumMessage::Close(frame) => Some(TungsteniteMessage::Close(frame.map(|f| {
+            TungCloseFrame {
+                code: f.code.into(),
+                reason: std::borrow::Cow::Owned(f.reason.as_str().to_string()),
+            }
+        }))),
     }
 }
 
@@ -130,11 +164,13 @@ fn tungstenite_to_axum(msg: TungsteniteMessage) -> Option<AxumMessage> {
         TungsteniteMessage::Binary(b) => Some(AxumMessage::Binary(b.into())),
         TungsteniteMessage::Ping(b) => Some(AxumMessage::Ping(b.into())),
         TungsteniteMessage::Pong(b) => Some(AxumMessage::Pong(b.into())),
-        TungsteniteMessage::Close(_) => {
-            // Propagate a plain close without a frame to avoid version-specific
-            // type differences between tungstenite 0.24 and axum's internal 0.28.
-            Some(AxumMessage::Close(None))
-        }
+        // Preserve the close code and reason across the protocol boundary.
+        TungsteniteMessage::Close(frame) => Some(AxumMessage::Close(frame.map(|f| {
+            AxumCloseFrame {
+                code: u16::from(f.code),
+                reason: f.reason.to_string().into(),
+            }
+        }))),
         TungsteniteMessage::Frame(_) => None,
     }
 }
@@ -153,9 +189,7 @@ fn normalize_ws_url(url: &str) -> Result<String, String> {
         // Bare host:port
         Ok(format!("ws://{}", url))
     } else {
-        Err(format!(
-            "WebSocket backend URL must use ws://, wss://, http://, or https:// scheme"
-        ))
+        Err("WebSocket backend URL must use ws://, wss://, http://, or https:// scheme".to_string())
     }
 }
 

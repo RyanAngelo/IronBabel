@@ -1,8 +1,9 @@
 use axum::{routing::{get, post, put}, Router};
 
 use crate::admin::handlers::{
-    admin_config, admin_config_schema, admin_events, admin_health, admin_index, admin_metrics,
-    admin_recent_requests, admin_routes, admin_save_draft_config, admin_validate_config,
+    admin_activate_draft_config, admin_config, admin_config_schema, admin_events, admin_health,
+    admin_index, admin_metrics, admin_recent_requests, admin_routes, admin_save_draft_config,
+    admin_validate_config,
 };
 use crate::core::gateway::AppState;
 
@@ -17,5 +18,6 @@ pub fn build_admin_router() -> Router<AppState> {
         .route("/admin/api/config/schema", get(admin_config_schema))
         .route("/admin/api/config/validate", post(admin_validate_config))
         .route("/admin/api/config/draft", put(admin_save_draft_config))
+        .route("/admin/api/config/activate", post(admin_activate_draft_config))
         .route("/admin/events", get(admin_events))
 }

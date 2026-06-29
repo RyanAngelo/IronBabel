@@ -9,11 +9,17 @@ use super::ProtocolGateway;
 
 pub struct GraphQLGateway {
     protocol: Arc<dyn Protocol>,
+    /// Shared HTTP client reused across requests; per-request timeouts are
+    /// applied per call.
+    client: reqwest::Client,
 }
 
 impl GraphQLGateway {
     pub fn new(protocol: Arc<dyn Protocol>) -> Self {
-        Self { protocol }
+        Self {
+            protocol,
+            client: reqwest::Client::new(),
+        }
     }
 
     /// Forward a GraphQL request to `target_url` as an HTTP POST.
@@ -38,11 +44,6 @@ impl GraphQLGateway {
             ));
         }
 
-        let client = reqwest::ClientBuilder::new()
-            .timeout(Duration::from_secs(timeout_secs))
-            .build()
-            .map_err(|e| Error::GraphQL(e.to_string()))?;
-
         // Strip hop-by-hop and Host headers; GraphQL always uses POST + JSON.
         let sanitized = crate::protocols::http::strip_hop_by_hop_headers(headers);
         let forward_headers: Vec<(String, String)> = sanitized
@@ -53,8 +54,10 @@ impl GraphQLGateway {
             })
             .collect();
 
-        let mut req = client
+        let mut req = self
+            .client
             .post(target_url)
+            .timeout(Duration::from_secs(timeout_secs))
             .header("content-type", "application/json")
             .body(body);
 
@@ -65,10 +68,13 @@ impl GraphQLGateway {
         let response = req.send().await.map_err(|e| Error::GraphQL(e.to_string()))?;
         let status = response.status().as_u16();
 
+        // Skip response headers whose value is not valid UTF-8.
         let raw_resp_headers: Vec<(String, String)> = response
             .headers()
             .iter()
-            .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
+            .filter_map(|(k, v)| {
+                v.to_str().ok().map(|val| (k.as_str().to_string(), val.to_string()))
+            })
             .collect();
         let resp_headers = crate::protocols::http::strip_hop_by_hop_headers(&raw_resp_headers);
 

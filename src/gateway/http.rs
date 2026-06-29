@@ -6,11 +6,17 @@ use super::ProtocolGateway;
 
 pub struct HttpGateway {
     protocol: Arc<dyn Protocol>,
+    /// Shared HTTP client. Built once so the connection pool and TLS config are
+    /// reused across requests; per-request timeouts are applied per call.
+    client: reqwest::Client,
 }
 
 impl HttpGateway {
     pub fn new(protocol: Arc<dyn Protocol>) -> Self {
-        Self { protocol }
+        Self {
+            protocol,
+            client: reqwest::Client::new(),
+        }
     }
 
     /// Proxy an incoming request to a backend target.
@@ -49,6 +55,19 @@ impl HttpGateway {
             return Err(Error::Protocol("invalid path".to_string()));
         }
 
+        // SSRF guard: the path is concatenated onto the trusted base URL, so it
+        // must be a well-formed absolute path with no characters that could
+        // alter the resolved authority (e.g. `@evil.com`) or inject into the
+        // request line.
+        if !crate::protocols::http::path_is_safe(path) {
+            return Err(Error::Protocol("invalid path".to_string()));
+        }
+        if let Some(q) = query {
+            if !crate::protocols::http::query_is_safe(q) {
+                return Err(Error::Protocol("invalid query".to_string()));
+            }
+        }
+
         // Build target URL
         let url = if let Some(q) = query {
             format!("{}{}?{}", target_base.trim_end_matches('/'), path, q)
@@ -63,14 +82,13 @@ impl HttpGateway {
             .filter(|(name, _)| name.to_lowercase() != "host")
             .collect();
 
-        // Build reqwest client with timeout
-        let client = reqwest::ClientBuilder::new()
+        // Assemble and send request, applying the per-request timeout to the
+        // shared client.
+        let mut req = self
+            .client
+            .request(method, &url)
             .timeout(Duration::from_secs(timeout_secs))
-            .build()
-            .map_err(|e| Error::Protocol(e.to_string()))?;
-
-        // Assemble and send request
-        let mut req = client.request(method, &url).body(body);
+            .body(body);
         for (name, value) in &forward_headers {
             req = req.header(name.as_str(), value.as_str());
         }
@@ -79,11 +97,14 @@ impl HttpGateway {
 
         let status = response.status().as_u16();
 
-        // Collect and sanitize response headers
+        // Collect and sanitize response headers. Headers whose value is not
+        // valid UTF-8 are skipped (rather than forwarded as an empty value).
         let raw_resp_headers: Vec<(String, String)> = response
             .headers()
             .iter()
-            .map(|(k, v)| (k.as_str().to_string(), v.to_str().unwrap_or("").to_string()))
+            .filter_map(|(k, v)| {
+                v.to_str().ok().map(|val| (k.as_str().to_string(), val.to_string()))
+            })
             .collect();
         let resp_headers = crate::protocols::http::strip_hop_by_hop_headers(&raw_resp_headers);
 
@@ -190,6 +211,44 @@ mod tests {
             .await
             .unwrap_err();
         assert!(err.to_string().contains("http://") || err.to_string().contains("https://"));
+    }
+
+    #[tokio::test]
+    async fn rejects_authority_confusion_path() {
+        // A path that does not start with '/' could turn the trusted base host
+        // into userinfo (SSRF). It must be rejected before any request is sent.
+        let gw = gateway();
+        let err = gw
+            .proxy(
+                reqwest::Method::GET,
+                "http://127.0.0.1:9000",
+                "@evil.com/",
+                None,
+                &[],
+                vec![],
+                5,
+            )
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("invalid path"));
+    }
+
+    #[tokio::test]
+    async fn rejects_query_with_control_chars() {
+        let gw = gateway();
+        let err = gw
+            .proxy(
+                reqwest::Method::GET,
+                "http://127.0.0.1:9000",
+                "/api",
+                Some("a=1\r\nHost: evil"),
+                &[],
+                vec![],
+                5,
+            )
+            .await
+            .unwrap_err();
+        assert!(err.to_string().contains("invalid query"));
     }
 
     #[tokio::test]

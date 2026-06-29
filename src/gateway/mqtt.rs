@@ -78,7 +78,12 @@ impl Default for MqttGateway {
     }
 }
 
+/// Delay before reconnecting an MQTT subscriber session after it ends.
+const RECONNECT_DELAY: Duration = Duration::from_secs(5);
+
 pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notify>) {
+    // Validate config once up front — a bad broker URL or QoS will never become
+    // valid, so there is no point reconnecting on those.
     let endpoint = match parse_broker_url(&config.broker_url) {
         Ok(endpoint) => endpoint,
         Err(e) => {
@@ -86,7 +91,6 @@ pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notif
             return;
         }
     };
-
     let qos = match qos_from_u8(config.qos) {
         Ok(qos) => qos,
         Err(e) => {
@@ -95,11 +99,36 @@ pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notif
         }
     };
 
+    loop {
+        tokio::select! {
+            _ = shutdown.notified() => {
+                tracing::info!("MQTT subscriber listener shutting down: {}", config.forward_to);
+                return;
+            }
+            _ = run_sub_session(&config, &endpoint, qos) => {
+                tracing::warn!(
+                    "MQTT subscriber session ({}) ended; reconnecting in {}s",
+                    config.broker_url,
+                    RECONNECT_DELAY.as_secs()
+                );
+            }
+        }
+
+        tokio::select! {
+            _ = shutdown.notified() => return,
+            _ = tokio::time::sleep(RECONNECT_DELAY) => {}
+        }
+    }
+}
+
+/// Runs a single MQTT subscriber session. Returns when subscribing fails or the
+/// event loop errors, allowing the caller to reconnect.
+async fn run_sub_session(config: &MqttSubListenerConfig, endpoint: &BrokerEndpoint, qos: QoS) {
     let client_id = config
         .client_id
         .clone()
         .unwrap_or_else(|| next_client_id("iron-babel-sub"));
-    let mut options = mqtt_options(&endpoint, &client_id);
+    let mut options = mqtt_options(endpoint, &client_id);
     options.set_keep_alive(Duration::from_secs(5));
 
     let (client, mut eventloop) = AsyncClient::new(options, 100);
@@ -117,16 +146,7 @@ pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notif
         .unwrap_or_default();
 
     loop {
-        let event = tokio::select! {
-            _ = shutdown.notified() => {
-                tracing::info!("MQTT subscriber listener shutting down: {}", config.forward_to);
-                let _ = client.disconnect().await;
-                break;
-            }
-            event = eventloop.poll() => event,
-        };
-
-        match event {
+        match eventloop.poll().await {
             Ok(Event::Incoming(Packet::Publish(publish))) => {
                 match http_client
                     .post(&config.forward_to)
@@ -156,7 +176,7 @@ pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notif
             Ok(_) => {}
             Err(e) => {
                 tracing::error!("MQTT subscriber listener error: {}", e);
-                break;
+                return;
             }
         }
     }

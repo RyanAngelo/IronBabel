@@ -52,6 +52,24 @@ impl GatewayConfig {
             ));
         }
 
+        // Rate-limit middleware: a window of zero requests or zero seconds
+        // would reject every request (or divide by zero), so reject it early
+        // rather than silently taking the gateway offline at runtime.
+        if self.middleware.rate_limit.enabled {
+            if self.middleware.rate_limit.requests_per_window == 0 {
+                return Err(Error::Config(
+                    "rate_limit.requests_per_window must be at least 1 when rate limiting is enabled"
+                        .to_string(),
+                ));
+            }
+            if self.middleware.rate_limit.window_secs == 0 {
+                return Err(Error::Config(
+                    "rate_limit.window_secs must be at least 1 when rate limiting is enabled"
+                        .to_string(),
+                ));
+            }
+        }
+
         for route in &self.routes {
             if route.path.is_empty() {
                 return Err(Error::Config(
@@ -61,6 +79,12 @@ impl GatewayConfig {
             if !route.path.starts_with('/') {
                 return Err(Error::Config(format!(
                     "route path '{}' must start with '/'",
+                    route.path
+                )));
+            }
+            if transport_timeout_secs(&route.transport) == 0 {
+                return Err(Error::Config(format!(
+                    "route '{}': timeout_secs must be at least 1 (0 times out immediately)",
                     route.path
                 )));
             }
@@ -454,6 +478,19 @@ fn default_true() -> bool { true }
 // Validation helpers
 // ---------------------------------------------------------------------------
 
+/// Returns the per-request timeout (seconds) configured for a transport.
+fn transport_timeout_secs(transport: &TransportConfig) -> u64 {
+    match transport {
+        TransportConfig::Http(cfg) => cfg.timeout_secs,
+        TransportConfig::Zmq(cfg) => cfg.timeout_secs,
+        TransportConfig::GraphQL(cfg) => cfg.timeout_secs,
+        TransportConfig::Grpc(cfg) => cfg.timeout_secs,
+        TransportConfig::WebSocket(cfg) => cfg.timeout_secs,
+        TransportConfig::Mqtt(cfg) => cfg.timeout_secs,
+        TransportConfig::Amqp(cfg) => cfg.timeout_secs,
+    }
+}
+
 fn validate_http_url(url: &str, context: &str) -> crate::error::Result<()> {
     if url.trim().is_empty() {
         return Err(crate::error::Error::Config(format!(
@@ -553,3 +590,69 @@ fn validate_amqp_broker_url(url: &str, context: &str) -> crate::error::Result<()
 
 pub mod file;
 pub mod env;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn base_config() -> GatewayConfig {
+        GatewayConfig {
+            host: "127.0.0.1".to_string(),
+            port: 8080,
+            protocols: vec![],
+            routes: vec![RouteConfig {
+                path: "/api".to_string(),
+                methods: vec![],
+                transport: TransportConfig::Http(HttpTransportConfig {
+                    url: "http://127.0.0.1:9000".to_string(),
+                    timeout_secs: 30,
+                    strip_prefix: false,
+                }),
+            }],
+            listeners: vec![],
+            middleware: MiddlewareSectionConfig::default(),
+        }
+    }
+
+    #[test]
+    fn valid_config_passes() {
+        assert!(base_config().validate().is_ok());
+    }
+
+    #[test]
+    fn rejects_zero_requests_per_window_when_enabled() {
+        let mut cfg = base_config();
+        cfg.middleware.rate_limit.enabled = true;
+        cfg.middleware.rate_limit.requests_per_window = 0;
+        let err = cfg.validate().unwrap_err();
+        assert!(err.to_string().contains("requests_per_window"));
+    }
+
+    #[test]
+    fn rejects_zero_window_secs_when_enabled() {
+        let mut cfg = base_config();
+        cfg.middleware.rate_limit.enabled = true;
+        cfg.middleware.rate_limit.window_secs = 0;
+        let err = cfg.validate().unwrap_err();
+        assert!(err.to_string().contains("window_secs"));
+    }
+
+    #[test]
+    fn allows_zero_rate_limit_values_when_disabled() {
+        let mut cfg = base_config();
+        cfg.middleware.rate_limit.enabled = false;
+        cfg.middleware.rate_limit.requests_per_window = 0;
+        cfg.middleware.rate_limit.window_secs = 0;
+        assert!(cfg.validate().is_ok());
+    }
+
+    #[test]
+    fn rejects_zero_route_timeout() {
+        let mut cfg = base_config();
+        if let TransportConfig::Http(ref mut http) = cfg.routes[0].transport {
+            http.timeout_secs = 0;
+        }
+        let err = cfg.validate().unwrap_err();
+        assert!(err.to_string().contains("timeout_secs"));
+    }
+}

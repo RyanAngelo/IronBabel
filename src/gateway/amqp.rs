@@ -79,7 +79,40 @@ impl Default for AmqpGateway {
     }
 }
 
+/// Delay before attempting to reconnect a consumer session after it ends.
+const RECONNECT_DELAY: Duration = Duration::from_secs(5);
+
 pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: Arc<Notify>) {
+    loop {
+        // Run one consumer session, racing it against shutdown. A healthy
+        // session never returns, so the shutdown branch is what stops the loop;
+        // a connection/stream error ends the session and we reconnect.
+        tokio::select! {
+            _ = shutdown.notified() => {
+                tracing::info!("AMQP consumer listener shutting down: {}", config.forward_to);
+                return;
+            }
+            _ = run_consumer_session(&config) => {
+                tracing::warn!(
+                    "AMQP consumer session for queue '{}' ended; reconnecting in {}s",
+                    config.queue,
+                    RECONNECT_DELAY.as_secs()
+                );
+            }
+        }
+
+        // Backoff before reconnecting, but exit immediately on shutdown.
+        tokio::select! {
+            _ = shutdown.notified() => return,
+            _ = tokio::time::sleep(RECONNECT_DELAY) => {}
+        }
+    }
+}
+
+/// Runs a single AMQP consumer session. Returns when the connection cannot be
+/// established or the consumer stream ends/errors, allowing the caller to
+/// reconnect.
+async fn run_consumer_session(config: &AmqpConsumeListenerConfig) {
     let connection = match Connection::connect(&config.broker_url, ConnectionProperties::default()).await {
         Ok(connection) => connection,
         Err(e) => {
@@ -100,7 +133,7 @@ pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: 
     let consumer_tag = config
         .consumer_tag
         .clone()
-        .unwrap_or_else(|| next_consumer_tag());
+        .unwrap_or_else(next_consumer_tag);
 
     let mut consumer = match channel
         .basic_consume(
@@ -127,21 +160,7 @@ pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: 
         .build()
         .unwrap_or_default();
 
-    loop {
-        let delivery = tokio::select! {
-            _ = shutdown.notified() => {
-                tracing::info!("AMQP consumer listener shutting down: {}", config.forward_to);
-                let _ = channel.close(200, "shutdown").await;
-                let _ = connection.close(200, "shutdown").await;
-                break;
-            }
-            delivery = consumer.next() => delivery,
-        };
-
-        let Some(delivery) = delivery else {
-            break;
-        };
-
+    while let Some(delivery) = consumer.next().await {
         match delivery {
             Ok(delivery) => {
                 let response = http_client
@@ -161,9 +180,21 @@ pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: 
                     let ack_result = if ok {
                         delivery.ack(BasicAckOptions::default()).await
                     } else {
+                        // Requeue only on the first delivery attempt. If the
+                        // message has already been redelivered and still fails,
+                        // nack without requeue so a persistently-failing
+                        // ("poison") message is dropped or dead-lettered instead
+                        // of looping forever and hammering the broker + target.
+                        let requeue = !delivery.redelivered;
+                        if !requeue {
+                            tracing::warn!(
+                                "AMQP delivery (tag {}) failed again after redelivery; dropping (requeue=false)",
+                                delivery.delivery_tag
+                            );
+                        }
                         delivery
                             .nack(BasicNackOptions {
-                                requeue: true,
+                                requeue,
                                 ..Default::default()
                             })
                             .await
@@ -191,7 +222,7 @@ pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: 
             }
             Err(e) => {
                 tracing::error!("AMQP consumer listener delivery error: {}", e);
-                break;
+                return;
             }
         }
     }

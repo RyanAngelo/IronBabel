@@ -104,10 +104,13 @@ impl ZmqGateway {
 
     /// **PUB/SUB** — publish `body` to a ZMQ subscriber, fire-and-forget.
     ///
-    /// Opens a PUB socket, connects to `target`, and sends a single frame
-    /// containing the optional `topic` prefix followed by `body`. Subscribers
-    /// filter by the topic prefix via `set_subscribe`. Returns immediately;
-    /// the caller should respond with 202.
+    /// Opens a PUB socket, connects to `target`, and sends a two-frame message:
+    /// the topic as the first frame and the body as the second. ZeroMQ
+    /// subscribers filter on the prefix of the first frame, so keeping the topic
+    /// in its own frame lets subscribers reliably separate it from the payload
+    /// (a single concatenated frame is ambiguous when the body happens to begin
+    /// with another topic's bytes). Returns immediately; the caller should
+    /// respond with 202.
     pub async fn forward_pub(
         &self,
         target: &str,
@@ -122,19 +125,32 @@ impl ZmqGateway {
             .await
             .map_err(|e| Error::Protocol(format!("ZMQ connect failed ({}): {}", addr, e)))?;
 
-        // Prefix the message with the topic bytes so subscribers can filter.
-        // Convention: [topic_bytes || body_bytes] in a single frame.
-        let mut message = topic.unwrap_or("").as_bytes().to_vec();
-        message.extend_from_slice(&body);
+        // ZeroMQ PUB sockets silently drop messages sent before a subscriber has
+        // finished connecting and subscribing (the "slow joiner" problem). Since
+        // this gateway opens a fresh socket per publish, give the connection a
+        // brief moment to establish before sending so the message is not lost.
+        tokio::time::sleep(PUB_SETTLE_DELAY).await;
+
+        // First frame = topic (used for subscriber prefix filtering), second
+        // frame = body. An empty topic still occupies its own frame so the body
+        // layout is consistent for subscribers.
+        let topic_frame = zeromq::ZmqMessage::from(topic.unwrap_or("").to_string());
+        let mut message = zeromq::ZmqMessage::from(body);
+        message.prepend(&topic_frame);
 
         socket
-            .send(zeromq::ZmqMessage::from(message))
+            .send(message)
             .await
             .map_err(|e| Error::Protocol(format!("ZMQ send failed: {}", e)))?;
 
         Ok(())
     }
 }
+
+/// Time to wait after connecting a PUB socket before publishing, to mitigate the
+/// ZeroMQ slow-joiner problem (subscribers that have not finished subscribing
+/// miss messages published immediately after connect).
+const PUB_SETTLE_DELAY: Duration = Duration::from_millis(200);
 
 impl Default for ZmqGateway {
     fn default() -> Self {
@@ -151,7 +167,36 @@ impl Default for ZmqGateway {
 ///
 /// Spawned once per `zmq_listeners` entry during gateway startup.
 /// The task exits on shutdown or socket error.
+/// Delay before re-binding a ZMQ PULL listener after its session ends.
+const RECONNECT_DELAY: Duration = Duration::from_secs(5);
+
 pub async fn run_pull_listener(config: ZmqPullListenerConfig, shutdown: Arc<Notify>) {
+    loop {
+        tokio::select! {
+            _ = shutdown.notified() => {
+                tracing::info!("ZMQ PULL listener shutting down on {}", to_tcp_addr(&config.bind));
+                return;
+            }
+            _ = run_pull_session(&config) => {
+                tracing::warn!(
+                    "ZMQ PULL listener session ({}) ended; rebinding in {}s",
+                    config.bind,
+                    RECONNECT_DELAY.as_secs()
+                );
+            }
+        }
+
+        tokio::select! {
+            _ = shutdown.notified() => return,
+            _ = tokio::time::sleep(RECONNECT_DELAY) => {}
+        }
+    }
+}
+
+/// Runs a single ZMQ PULL session: bind, receive frames, and forward each as an
+/// HTTP POST. Returns when binding fails or a receive errors, allowing the
+/// caller to rebind.
+async fn run_pull_session(config: &ZmqPullListenerConfig) {
     let bind_addr = to_tcp_addr(&config.bind);
     let http_target = config.forward_to.clone();
 
@@ -170,15 +215,7 @@ pub async fn run_pull_listener(config: ZmqPullListenerConfig, shutdown: Arc<Noti
         .unwrap_or_default();
 
     loop {
-        let recv_result = tokio::select! {
-            _ = shutdown.notified() => {
-                tracing::info!("ZMQ PULL listener shutting down on {}", bind_addr);
-                break;
-            }
-            recv_result = socket.recv() => recv_result,
-        };
-
-        match recv_result {
+        match socket.recv().await {
             Ok(msg) => {
                 let body = msg_to_bytes(msg);
                 match client
@@ -199,7 +236,7 @@ pub async fn run_pull_listener(config: ZmqPullListenerConfig, shutdown: Arc<Noti
             }
             Err(e) => {
                 tracing::error!("ZMQ PULL listener recv error on {}: {}", bind_addr, e);
-                break;
+                return;
             }
         }
     }
@@ -446,6 +483,50 @@ mod tests {
 
         let msgs = received.lock().await;
         assert_eq!(msgs.len(), 5);
+        handle.abort();
+    }
+
+    // ── pub/sub ──────────────────────────────────────────────────────────────
+
+    #[tokio::test]
+    async fn pub_sends_topic_and_body_as_separate_frames() {
+        let port = 15_508u16;
+
+        // Subscriber binds and subscribes to all topics.
+        let mut sub = zeromq::SubSocket::new();
+        sub.bind(&format!("tcp://127.0.0.1:{}", port))
+            .await
+            .expect("sub bind");
+        sub.subscribe("").await.expect("subscribe");
+
+        let received: Arc<Mutex<Vec<Vec<Vec<u8>>>>> = Arc::new(Mutex::new(Vec::new()));
+        let received_clone = Arc::clone(&received);
+        let handle = tokio::spawn(async move {
+            if let Ok(msg) = sub.recv().await {
+                let frames: Vec<Vec<u8>> = msg.into_vec().into_iter().map(|f| f.to_vec()).collect();
+                received_clone.lock().await.push(frames);
+            }
+        });
+
+        sleep(Duration::from_millis(50)).await;
+
+        let gw = ZmqGateway::new();
+        gw.forward_pub(
+            &format!("zmq://127.0.0.1:{}", port),
+            b"payload-bytes".to_vec(),
+            Some("orders"),
+        )
+        .await
+        .unwrap();
+
+        sleep(Duration::from_millis(400)).await;
+
+        let msgs = received.lock().await;
+        assert_eq!(msgs.len(), 1, "subscriber should receive exactly one message");
+        let frames = &msgs[0];
+        assert_eq!(frames.len(), 2, "message should have a topic frame and a body frame");
+        assert_eq!(frames[0], b"orders");
+        assert_eq!(frames[1], b"payload-bytes");
         handle.abort();
     }
 

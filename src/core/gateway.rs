@@ -12,7 +12,6 @@ use tokio::net::TcpListener;
 use tokio::sync::{Mutex, Notify};
 use tokio::task::JoinHandle;
 use tower_http::limit::RequestBodyLimitLayer;
-use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use crate::{error::Result, protocols::Protocol};
 use crate::protocols::{
@@ -169,10 +168,11 @@ async fn handle_request(
         Err(crate::error::Error::RateLimited) => {
             let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
-            let window_secs = transport_timeout(&route.transport); // reuse for Retry-After approximation
+            // Retry-After should reflect the rate-limit window, not the backend
+            // request timeout. Fall back to 60s only if the window is unknown.
             let retry_after = state.middleware
                 .rate_limit_window_secs()
-                .unwrap_or(window_secs)
+                .unwrap_or(60)
                 .to_string();
             state.metrics.record_request(&method_str, &path, matched_route, &target, 429, latency_ms, None).await;
             return finalize_into_response(&state, (
@@ -671,12 +671,25 @@ async fn handle_grpc(
 
     match state.grpc_gateway.proxy(&cfg.url, path, &headers, framed_body, cfg.timeout_secs).await {
         Ok((status, resp_headers, resp_body)) => {
-            // Strip gRPC framing from the response body before returning.
             // Strip gRPC framing on successful responses. For non-2xx
             // responses the body is typically an HTTP-level error message
-            // (not a gRPC frame), so pass it through as-is.
+            // (not a gRPC frame), so pass it through as-is. If a 2xx response
+            // body is not a valid gRPC frame, return a 502 rather than handing
+            // the client a corrupt, still-framed payload.
             let decoded_body = if (200..300).contains(&status) {
-                grpc_proto.decode(resp_body.clone()).await.unwrap_or(resp_body)
+                match grpc_proto.decode(resp_body).await {
+                    Ok(b) => b,
+                    Err(e) => {
+                        tracing::error!("gRPC response decode error: {}", e);
+                        let latency_ms = start.elapsed().as_millis() as u64;
+                        state.metrics.record_request(method_str, path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
+                        return finalize_into_response(
+                            state,
+                            (StatusCode::BAD_GATEWAY, "Bad gateway: malformed gRPC response"),
+                        )
+                        .await;
+                    }
+                }
             } else {
                 resp_body
             };
@@ -814,13 +827,18 @@ impl Gateway for DefaultGateway {
                 admin_middleware,
             ));
 
+        // NOTE: we deliberately do NOT apply a global request TimeoutLayer here.
+        // Every upstream dispatch already enforces its own per-route timeout
+        // (reqwest client timeout for http/graphql/grpc, tokio timeouts for
+        // zmq/mqtt/amqp, connect timeout for websocket). A fixed global timeout
+        // would (a) kill the long-lived `/admin/events` SSE stream and (b)
+        // silently cap any per-route timeout configured above its value.
         let app = axum::Router::new()
             .merge(admin_router)
             .route("/{*path}", any(handle_request))
             .route("/", any(handle_request))
             .with_state(state)
             .layer(TraceLayer::new_for_http())
-            .layer(TimeoutLayer::with_status_code(axum::http::StatusCode::GATEWAY_TIMEOUT, Duration::from_secs(30)))
             .layer(RequestBodyLimitLayer::new(10 * 1024 * 1024));
 
         let shutdown = Arc::clone(&self.shutdown);

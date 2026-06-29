@@ -71,6 +71,57 @@ pub fn decode_grpc_frame(data: &[u8]) -> Result<Vec<u8>> {
     Ok(payload[..declared_len].to_vec())
 }
 
+/// Strip gRPC framing from a buffer that may contain **one or more** frames,
+/// concatenating the payloads in order.
+///
+/// A single response can carry multiple length-prefixed frames (e.g. a
+/// server-streaming method). `decode_grpc_frame` only ever returns the first
+/// frame and silently discards the rest; this function walks every frame so no
+/// data is lost. Returns an error if any frame is malformed, compressed, or
+/// truncated.
+pub fn decode_grpc_frames(data: &[u8]) -> Result<Vec<u8>> {
+    let mut out = Vec::with_capacity(data.len());
+    let mut offset = 0;
+
+    while offset < data.len() {
+        let remaining = &data[offset..];
+        if remaining.len() < GRPC_HEADER_LEN {
+            return Err(Error::Protocol(format!(
+                "gRPC frame too short: {} trailing bytes (expected at least {})",
+                remaining.len(),
+                GRPC_HEADER_LEN,
+            )));
+        }
+
+        let compression_flag = remaining[0];
+        if compression_flag != 0 {
+            return Err(Error::Protocol(format!(
+                "Unsupported gRPC compression flag: {} (only uncompressed (0) is supported)",
+                compression_flag,
+            )));
+        }
+
+        let declared_len =
+            u32::from_be_bytes([remaining[1], remaining[2], remaining[3], remaining[4]]) as usize;
+        let start = GRPC_HEADER_LEN;
+        let end = start
+            .checked_add(declared_len)
+            .filter(|&end| end <= remaining.len())
+            .ok_or_else(|| {
+                Error::Protocol(format!(
+                    "gRPC frame payload truncated: declared {} bytes, got {}",
+                    declared_len,
+                    remaining.len().saturating_sub(GRPC_HEADER_LEN),
+                ))
+            })?;
+
+        out.extend_from_slice(&remaining[start..end]);
+        offset += end;
+    }
+
+    Ok(out)
+}
+
 #[async_trait]
 impl Protocol for GrpcProtocol {
     fn name(&self) -> &str {
@@ -82,9 +133,10 @@ impl Protocol for GrpcProtocol {
         Ok(encode_grpc_frame(&data))
     }
 
-    /// Strip the gRPC length-prefixed frame header, returning the raw protobuf bytes.
+    /// Strip the gRPC length-prefixed framing, returning the concatenated raw
+    /// protobuf bytes. Handles responses that carry more than one frame.
     async fn decode(&self, data: Vec<u8>) -> Result<Vec<u8>> {
-        decode_grpc_frame(&data)
+        decode_grpc_frames(&data)
     }
 }
 
@@ -170,5 +222,54 @@ mod tests {
         let framed = encode_grpc_frame(&payload);
         let decoded = decode_grpc_frame(&framed).unwrap();
         assert_eq!(decoded, payload);
+    }
+
+    #[test]
+    fn decode_frames_concatenates_multiple_frames() {
+        // Two frames in one buffer (e.g. a server-streaming response).
+        let mut buf = encode_grpc_frame(b"first");
+        buf.extend_from_slice(&encode_grpc_frame(b"second"));
+        let decoded = decode_grpc_frames(&buf).unwrap();
+        assert_eq!(decoded, b"firstsecond");
+    }
+
+    #[test]
+    fn decode_frames_single_frame_matches_single_decode() {
+        let framed = encode_grpc_frame(b"payload");
+        assert_eq!(
+            decode_grpc_frames(&framed).unwrap(),
+            decode_grpc_frame(&framed).unwrap()
+        );
+    }
+
+    #[test]
+    fn decode_frames_empty_input_is_empty() {
+        assert_eq!(decode_grpc_frames(&[]).unwrap(), Vec::<u8>::new());
+    }
+
+    #[test]
+    fn decode_frames_rejects_trailing_garbage() {
+        let mut buf = encode_grpc_frame(b"ok");
+        buf.extend_from_slice(&[0u8, 0, 0]); // 3 trailing bytes < header len
+        let err = decode_grpc_frames(&buf).unwrap_err();
+        assert!(err.to_string().contains("too short"));
+    }
+
+    #[test]
+    fn decode_frames_rejects_truncated_second_frame() {
+        let mut buf = encode_grpc_frame(b"ok");
+        // Second frame claims 50 bytes but provides none.
+        buf.push(0);
+        buf.extend_from_slice(&50u32.to_be_bytes());
+        let err = decode_grpc_frames(&buf).unwrap_err();
+        assert!(err.to_string().contains("truncated"));
+    }
+
+    #[tokio::test]
+    async fn protocol_decode_handles_multiple_frames() {
+        let p = proto();
+        let mut buf = encode_grpc_frame(b"a");
+        buf.extend_from_slice(&encode_grpc_frame(b"b"));
+        assert_eq!(p.decode(buf).await.unwrap(), b"ab");
     }
 }

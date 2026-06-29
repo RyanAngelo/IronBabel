@@ -41,20 +41,47 @@ impl Protocol for HttpProtocol {
 /// Returns `true` if `path` contains a `..` traversal segment in raw or
 /// percent-encoded form (e.g. `%2e%2e`, `.%2e`, `%2e.`).
 ///
-/// The check iteratively decodes percent-encoded dots so that multi-level
-/// encoding such as `%252e%252e` is also rejected.
+/// The check iteratively decodes percent-encoded percent signs (`%25` → `%`),
+/// dots (`%2e` → `.`) and slashes (`%2f` → `/`) so that multi-level encoding
+/// such as `%252e%252e` and encoded-slash traversal such as `/foo%2f..%2fbar`
+/// are also rejected.
 pub fn path_contains_traversal(path: &str) -> bool {
     let mut p = path.to_ascii_lowercase();
-    // Iteratively decode percent-encoded percent signs (%25 → %) and dots
-    // (%2e → .) to catch multi-level encoding such as %252e%252e → %2e%2e → ..
     loop {
-        let decoded = p.replace("%25", "%").replace("%2e", ".");
+        let decoded = p
+            .replace("%25", "%")
+            .replace("%2e", ".")
+            .replace("%2f", "/");
         if decoded == p {
             break;
         }
         p = decoded;
     }
     p.split('/').any(|seg| seg == "..")
+}
+
+/// Returns `true` if `path` is safe to append to a trusted `target_base` when
+/// building an upstream URL.
+///
+/// Request paths are concatenated onto the configured (trusted) base URL. A
+/// path that does not begin with `/`, or that contains control characters,
+/// spaces, or backslashes, could alter the authority that the URL parser
+/// resolves (e.g. `@evil.com` turning the base host into userinfo) and defeat
+/// the SSRF guard. Such paths are rejected.
+pub fn path_is_safe(path: &str) -> bool {
+    path.starts_with('/')
+        && !path
+            .chars()
+            .any(|c| c.is_ascii_control() || c == ' ' || c == '\\')
+}
+
+/// Returns `true` if `query` is safe to append to an upstream URL — i.e. it
+/// contains no control characters or whitespace that could be used for header
+/// or request-line injection.
+pub fn query_is_safe(query: &str) -> bool {
+    !query
+        .chars()
+        .any(|c| c.is_ascii_control() || c == ' ')
 }
 
 /// Strips hop-by-hop headers that must not be forwarded to backends.
@@ -213,10 +240,59 @@ mod tests {
     }
 
     #[test]
+    fn detects_encoded_slash_traversal() {
+        // Encoded slashes must be decoded so that `..` between them is caught.
+        assert!(path_contains_traversal("/foo%2f..%2fbar"));
+        assert!(path_contains_traversal("/foo/..%2fbar"));
+        assert!(path_contains_traversal("/%2e%2e%2fetc%2fpasswd"));
+    }
+
+    #[test]
     fn allows_normal_paths() {
         assert!(!path_contains_traversal("/api/users"));
         assert!(!path_contains_traversal("/"));
         assert!(!path_contains_traversal("/api/v2"));
         assert!(!path_contains_traversal("/foo.bar/baz"));
+    }
+
+    // --- path_is_safe ---
+
+    #[test]
+    fn path_is_safe_accepts_normal_paths() {
+        assert!(path_is_safe("/"));
+        assert!(path_is_safe("/api/v1/users"));
+        assert!(path_is_safe("/pkg.Service/Method"));
+        assert!(path_is_safe("/items/42"));
+    }
+
+    #[test]
+    fn path_is_safe_rejects_authority_confusion() {
+        // Paths that do not start with '/' could be parsed as userinfo/authority
+        // when concatenated onto the base URL (SSRF vector).
+        assert!(!path_is_safe("@evil.com"));
+        assert!(!path_is_safe("evil.com/path"));
+    }
+
+    #[test]
+    fn path_is_safe_rejects_control_and_whitespace() {
+        assert!(!path_is_safe("/foo\r\nHost: evil"));
+        assert!(!path_is_safe("/foo bar"));
+        assert!(!path_is_safe("/foo\\bar"));
+        assert!(!path_is_safe("/foo\tbar"));
+    }
+
+    // --- query_is_safe ---
+
+    #[test]
+    fn query_is_safe_accepts_normal_queries() {
+        assert!(query_is_safe("a=1&b=2"));
+        assert!(query_is_safe("filter=name%20eq%20bob"));
+        assert!(query_is_safe(""));
+    }
+
+    #[test]
+    fn query_is_safe_rejects_control_and_whitespace() {
+        assert!(!query_is_safe("a=1\r\nHost: evil"));
+        assert!(!query_is_safe("a=1 2"));
     }
 }
