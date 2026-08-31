@@ -217,9 +217,12 @@ impl MetricsStore {
             .unwrap_or_default()
             .as_secs();
         let window = 5u64;
+        // Strictly greater than `now - window`: buckets are one second wide, so
+        // `>=` would span `window + 1` of them (now-5 ..= now) and inflate the
+        // rate by ~20% once the divisor below settles at the full window.
         let count: u64 = buckets
             .iter()
-            .filter(|b| b.timestamp_secs >= now_secs.saturating_sub(window))
+            .filter(|b| b.timestamp_secs > now_secs.saturating_sub(window))
             .map(|b| b.request_count)
             .sum();
         // Divide by the actual observed span, not always the full window: right
@@ -274,6 +277,51 @@ fn percentile(sorted_asc: &[u64], p: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Feeds `counts` into the bucket timeline as one-second buckets ending at
+    /// the current second, then reads back the computed rate.
+    async fn rps_over(counts: &[u64]) -> f64 {
+        let store = MetricsStore::new();
+        let now_secs = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
+        {
+            let mut buckets = store.time_buckets.lock().await;
+            let oldest = counts.len() as u64 - 1;
+            for (i, count) in counts.iter().enumerate() {
+                buckets.push_back(TimeBucket {
+                    timestamp_secs: now_secs - oldest + i as u64,
+                    request_count: *count,
+                    total_latency_ms: 0,
+                    error_count: 0,
+                });
+            }
+        }
+
+        store.compute_rps().await
+    }
+
+    #[tokio::test]
+    async fn rps_sums_exactly_window_buckets() {
+        // Regression: the filter used `>= now - window`, which spans window + 1
+        // one-second buckets while the divisor is the window itself, inflating a
+        // steady rate by ~20%.
+        //
+        // The store is brand new here, so `uptime_secs()` is 0 and the divisor
+        // collapses to 1 — which is what makes the raw bucket count observable.
+        // One request in each of six consecutive seconds must count as 5, not 6.
+        let rps = rps_over(&[1, 1, 1, 1, 1, 1]).await;
+        assert_eq!(rps, 5.0, "window must cover exactly 5 one-second buckets");
+    }
+
+    #[tokio::test]
+    async fn rps_excludes_the_bucket_at_the_window_edge() {
+        // The 999 sits at `now - 5`, one second beyond the window.
+        let rps = rps_over(&[999, 0, 0, 0, 0, 0]).await;
+        assert_eq!(rps, 0.0);
+    }
 
     #[test]
     fn percentile_empty_is_zero() {

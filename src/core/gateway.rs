@@ -308,17 +308,22 @@ async fn handle_request(
     }
 }
 
+/// Replaces any client-supplied `X-Forwarded-For` with the address observed on
+/// the socket.
+///
+/// Every copy must be removed, not just the first: the header list is built one
+/// entry per header *value*, so a client sending `X-Forwarded-For` twice yields
+/// two entries, and `reqwest` appends rather than overwrites when forwarding.
+/// Rewriting only the first occurrence would leave the client's second value on
+/// the upstream request, and a backend that reads the last value (or joins them)
+/// would trust an attacker-controlled address.
+///
+/// The client's values are dropped even when the socket address is unknown —
+/// forwarding an unverifiable claim is worse than forwarding none.
 fn set_forwarded_for(headers: &mut Vec<(String, String)>, remote_addr: &str) {
-    if remote_addr.is_empty() {
-        return;
-    }
+    headers.retain(|(name, _)| !name.eq_ignore_ascii_case("x-forwarded-for"));
 
-    if let Some((_, value)) = headers
-        .iter_mut()
-        .find(|(name, _)| name.eq_ignore_ascii_case("x-forwarded-for"))
-    {
-        *value = remote_addr.to_string();
-    } else {
+    if !remote_addr.is_empty() {
         headers.push(("x-forwarded-for".to_string(), remote_addr.to_string()));
     }
 }
@@ -983,4 +988,60 @@ fn build_middleware_chain(config: &crate::config::MiddlewareSectionConfig) -> Mi
     })));
 
     chain
+}
+
+#[cfg(test)]
+mod tests {
+    use super::set_forwarded_for;
+
+    fn headers(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+    }
+
+    fn xff(headers: &[(String, String)]) -> Vec<&str> {
+        headers
+            .iter()
+            .filter(|(name, _)| name.eq_ignore_ascii_case("x-forwarded-for"))
+            .map(|(_, value)| value.as_str())
+            .collect()
+    }
+
+    #[test]
+    fn adds_forwarded_for_when_absent() {
+        let mut h = headers(&[("accept", "*/*")]);
+        set_forwarded_for(&mut h, "203.0.113.7");
+        assert_eq!(xff(&h), vec!["203.0.113.7"]);
+    }
+
+    #[test]
+    fn overwrites_client_supplied_forwarded_for() {
+        let mut h = headers(&[("X-Forwarded-For", "1.2.3.4")]);
+        set_forwarded_for(&mut h, "203.0.113.7");
+        assert_eq!(xff(&h), vec!["203.0.113.7"]);
+    }
+
+    #[test]
+    fn strips_every_duplicate_forwarded_for() {
+        // The key regression: one entry per header *value*, so a client can send
+        // the header twice. Rewriting only the first left the second in place,
+        // and reqwest appends when forwarding — so the backend saw both the real
+        // address and the spoofed one.
+        let mut h = headers(&[
+            ("X-Forwarded-For", "1.2.3.4"),
+            ("accept", "*/*"),
+            ("x-forwarded-for", "5.6.7.8"),
+        ]);
+        set_forwarded_for(&mut h, "203.0.113.7");
+
+        assert_eq!(xff(&h), vec!["203.0.113.7"]);
+        assert!(h.iter().any(|(n, _)| n == "accept"), "other headers preserved");
+    }
+
+    #[test]
+    fn drops_client_forwarded_for_when_address_unknown() {
+        // An unverifiable claim is worse than none.
+        let mut h = headers(&[("X-Forwarded-For", "1.2.3.4")]);
+        set_forwarded_for(&mut h, "");
+        assert!(xff(&h).is_empty());
+    }
 }
