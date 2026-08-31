@@ -75,11 +75,20 @@ impl HttpGateway {
             format!("{}{}", target_base.trim_end_matches('/'), path)
         };
 
-        // Strip hop-by-hop headers and drop Host (let reqwest set it to the target host)
+        // Strip hop-by-hop headers, then drop:
+        // - `host`: let reqwest set it from the target URL's authority;
+        // - `content-length`: the inbound value describes the *original* body.
+        //   Middleware may have rewritten the body, so forwarding the stale
+        //   length would either truncate the request or desync the upstream
+        //   parser (a request-smuggling vector). reqwest derives the correct
+        //   length from the body we actually send.
         let sanitized = crate::protocols::http::strip_hop_by_hop_headers(headers);
         let forward_headers: Vec<(String, String)> = sanitized
             .into_iter()
-            .filter(|(name, _)| name.to_lowercase() != "host")
+            .filter(|(name, _)| {
+                let lower = name.to_lowercase();
+                lower != "host" && lower != "content-length"
+            })
             .collect();
 
         // Assemble and send request, applying the per-request timeout to the

@@ -267,3 +267,53 @@ async fn proxy_returns_backend_error_status() {
     assert_eq!(status, 404);
     assert_eq!(body, b"not found");
 }
+
+// ---------------------------------------------------------------------------
+// Content-Length handling
+// ---------------------------------------------------------------------------
+
+/// The inbound `Content-Length` describes the body the *client* sent. Middleware
+/// may rewrite the body before it is forwarded, so forwarding the stale value
+/// would truncate the request or desync the upstream parser. The gateway must
+/// drop it and let the HTTP client derive the correct length.
+#[tokio::test]
+async fn proxy_does_not_forward_stale_content_length() {
+    let mock_server = MockServer::start().await;
+
+    Mock::given(method("POST"))
+        .and(path("/submit"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&mock_server)
+        .await;
+
+    let gw = gateway();
+    let body = b"the-real-body-is-longer".to_vec();
+    // A deliberately wrong length, as if middleware had shrunk the body.
+    let headers = vec![("content-length".to_string(), "3".to_string())];
+
+    let (status, _, _) = gw
+        .proxy(
+            reqwest::Method::POST,
+            &mock_server.uri(),
+            "/submit",
+            None,
+            &headers,
+            body.clone(),
+            5,
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(status, 200);
+
+    let received = mock_server.received_requests().await.unwrap();
+    assert_eq!(received.len(), 1, "expected exactly one request at backend");
+    let req = &received[0];
+
+    assert_eq!(
+        req.headers.get("content-length").map(|v| v.to_str().unwrap()),
+        Some(body.len().to_string().as_str()),
+        "backend must see the length of the body actually sent, not the stale inbound value"
+    );
+    assert_eq!(req.body, body, "backend must receive the full body");
+}
