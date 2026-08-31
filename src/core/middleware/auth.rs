@@ -2,6 +2,19 @@ use async_trait::async_trait;
 use crate::core::{Request, Response, MiddlewareConfig};
 use crate::error::{Result, Error};
 
+/// Compares two secrets without an early exit on the first differing byte.
+///
+/// A plain `==` returns as soon as bytes diverge, so the time taken reveals how
+/// many leading bytes of a guess were correct — enough to recover a token one
+/// byte at a time. Length is not hidden (and does not need to be).
+fn constant_time_eq(a: &str, b: &str) -> bool {
+    let (a, b) = (a.as_bytes(), b.as_bytes());
+    if a.len() != b.len() {
+        return false;
+    }
+    a.iter().zip(b).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+}
+
 pub struct AuthMiddleware {
     config: MiddlewareConfig,
 }
@@ -20,7 +33,16 @@ impl AuthMiddleware {
 
         match api_keys {
             Some(keys) if !keys.is_empty() => {
-                if keys.iter().any(|k| k.as_str() == Some(token)) {
+                // `fold`, not `any`: short-circuiting on the first match would
+                // make the number of comparisons depend on which key matched.
+                let matched = keys.iter().fold(false, |acc, k| {
+                    match k.as_str() {
+                        Some(key) => acc | constant_time_eq(key, token),
+                        None => acc,
+                    }
+                });
+
+                if matched {
                     Ok(())
                 } else {
                     Err(Error::Unauthorized("Invalid token".to_string()))
@@ -81,5 +103,30 @@ impl super::Middleware for AuthMiddleware {
 
     fn config(&self) -> &MiddlewareConfig {
         &self.config
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::constant_time_eq;
+
+    #[test]
+    fn constant_time_eq_matches_identical_strings() {
+        assert!(constant_time_eq("s3cret", "s3cret"));
+        assert!(constant_time_eq("", ""));
+    }
+
+    #[test]
+    fn constant_time_eq_rejects_differences() {
+        assert!(!constant_time_eq("s3cret", "s3cres"));
+        assert!(!constant_time_eq("s3cret", "S3cret"));
+        assert!(!constant_time_eq("s3cret", "s3cret "));
+        assert!(!constant_time_eq("s3cret", ""));
+    }
+
+    #[test]
+    fn constant_time_eq_is_not_a_prefix_match() {
+        assert!(!constant_time_eq("s3cret", "s3"));
+        assert!(!constant_time_eq("s3", "s3cret"));
     }
 }
