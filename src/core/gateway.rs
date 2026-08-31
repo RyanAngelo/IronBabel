@@ -63,6 +63,40 @@ struct RuntimeHandles {
 // Request handler
 // ---------------------------------------------------------------------------
 
+/// Request-scoped context shared by every transport dispatch helper: what was
+/// asked (`method`/`path`), which route matched, and when the request started.
+///
+/// Bundling these keeps the helper signatures at two or three arguments instead
+/// of eight, and gives them one place to record a metrics sample — the
+/// `latency_ms` + `record_request` pair was previously repeated at every exit
+/// point of every helper.
+struct Dispatch<'a> {
+    state: &'a AppState,
+    method: &'a str,
+    path: &'a str,
+    route: &'a crate::config::RouteConfig,
+    start: std::time::Instant,
+}
+
+impl Dispatch<'_> {
+    /// Records one upstream outcome, deriving latency from `start`.
+    async fn record(&self, target: &str, status: u16, error: Option<String>) {
+        let latency_ms = self.start.elapsed().as_millis() as u64;
+        self.state
+            .metrics
+            .record_request(
+                self.method,
+                self.path,
+                Some(self.route.path.clone()),
+                target,
+                status,
+                latency_ms,
+                error,
+            )
+            .await;
+    }
+}
+
 async fn handle_request(
     State(state): State<AppState>,
     ConnectInfo(remote_addr): ConnectInfo<SocketAddr>,
@@ -89,7 +123,13 @@ async fn handle_request(
         Some(r) => r.clone(),
     };
 
-    let matched_route = Some(route.path.clone());
+    let d = Dispatch {
+        state: &state,
+        method: &method_str,
+        path: &path,
+        route: &route,
+        start,
+    };
 
     // WebSocket upgrades must be handled before the body is consumed.
     if let TransportConfig::WebSocket(cfg) = &route.transport {
@@ -101,8 +141,7 @@ async fn handle_request(
             Ok(upgrade) => {
                 let backend_url = cfg.url.clone();
                 let timeout_secs = cfg.timeout_secs;
-                let latency_ms = start.elapsed().as_millis() as u64;
-                state.metrics.record_request(&method_str, &path, matched_route, &backend_url, 101, latency_ms, None).await;
+                d.record(&backend_url, 101, None).await;
                 return finalize_response(
                     &state,
                     crate::gateway::ws::handle_websocket_upgrade(upgrade, backend_url, timeout_secs),
@@ -110,8 +149,7 @@ async fn handle_request(
                 .await;
             }
             Err(_) => {
-                let latency_ms = start.elapsed().as_millis() as u64;
-                state.metrics.record_request(&method_str, &path, matched_route, &cfg.url, 426, latency_ms, None).await;
+                d.record(&cfg.url, 426, None).await;
                 return finalize_into_response(
                     &state,
                     (StatusCode::UPGRADE_REQUIRED, "WebSocket upgrade required"),
@@ -135,9 +173,8 @@ async fn handle_request(
     let body_bytes = match axum::body::to_bytes(req.into_body(), 10 * 1024 * 1024).await {
         Ok(b) => b.to_vec(),
         Err(_) => {
-            let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
-            state.metrics.record_request(&method_str, &path, matched_route, &target, 413, latency_ms, None).await;
+            d.record(&target, 413, None).await;
             return finalize_into_response(&state, (StatusCode::PAYLOAD_TOO_LARGE, "Body too large"))
                 .await;
         }
@@ -160,13 +197,11 @@ async fn handle_request(
     let core_req = match state.middleware.handle_request(core_req).await {
         Ok(r) => r,
         Err(crate::error::Error::Unauthorized(msg)) => {
-            let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
-            state.metrics.record_request(&method_str, &path, matched_route, &target, 401, latency_ms, None).await;
+            d.record(&target, 401, None).await;
             return finalize_into_response(&state, (StatusCode::UNAUTHORIZED, msg)).await;
         }
         Err(crate::error::Error::RateLimited) => {
-            let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
             // Retry-After should reflect the rate-limit window, not the backend
             // request timeout. Fall back to 60s only if the window is unknown.
@@ -174,7 +209,7 @@ async fn handle_request(
                 .rate_limit_window_secs()
                 .unwrap_or(60)
                 .to_string();
-            state.metrics.record_request(&method_str, &path, matched_route, &target, 429, latency_ms, None).await;
+            d.record(&target, 429, None).await;
             return finalize_into_response(&state, (
                 StatusCode::TOO_MANY_REQUESTS,
                 [(axum::http::header::RETRY_AFTER, retry_after.as_str())],
@@ -184,9 +219,8 @@ async fn handle_request(
         }
         Err(e) => {
             tracing::error!("Middleware error: {}", e);
-            let latency_ms = start.elapsed().as_millis() as u64;
             let target = transport_target(&route.transport);
-            state.metrics.record_request(&method_str, &path, matched_route, &target, 500, latency_ms, Some(e.to_string())).await;
+            d.record(&target, 500, Some(e.to_string())).await;
             return finalize_into_response(&state, StatusCode::INTERNAL_SERVER_ERROR).await;
         }
     };
@@ -202,8 +236,7 @@ async fn handle_request(
             let reqwest_method = match reqwest::Method::from_bytes(method_str.as_bytes()) {
                 Ok(m) => m,
                 Err(_) => {
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(&method_str, &path, matched_route, &cfg.url, 405, latency_ms, None).await;
+                    d.record(&cfg.url, 405, None).await;
                     return finalize_into_response(&state, (StatusCode::METHOD_NOT_ALLOWED, "Invalid method"))
                         .await;
                 }
@@ -229,8 +262,7 @@ async fn handle_request(
                 .await
             {
                 Ok((status, resp_headers, resp_body)) => {
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(&method_str, &path, matched_route, &cfg.url, status, latency_ms, None).await;
+                    d.record(&cfg.url, status, None).await;
                     let mut builder = axum::response::Response::builder().status(status);
                     for (name, value) in resp_headers {
                         builder = builder.header(name, value);
@@ -245,31 +277,30 @@ async fn handle_request(
                 }
                 Err(e) => {
                     tracing::error!("Proxy error: {}", e);
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(&method_str, &path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
+                    d.record(&cfg.url, 502, Some(e.to_string())).await;
                     finalize_into_response(&state, (StatusCode::BAD_GATEWAY, "Bad gateway")).await
                 }
             }
         }
 
         TransportConfig::Zmq(cfg) => {
-            handle_zmq(&state, &method_str, &path, &route, cfg, body_bytes, start).await
+            handle_zmq(&d, cfg, body_bytes).await
         }
 
         TransportConfig::GraphQL(cfg) => {
-            handle_graphql(&state, &method_str, &path, &route, cfg, headers, body_bytes, start).await
+            handle_graphql(&d, cfg, headers, body_bytes).await
         }
 
         TransportConfig::Grpc(cfg) => {
-            handle_grpc(&state, &method_str, &path, &route, cfg, headers, body_bytes, start).await
+            handle_grpc(&d, cfg, headers, body_bytes).await
         }
 
         TransportConfig::Mqtt(cfg) => {
-            handle_mqtt(&state, &method_str, &path, &route, cfg, body_bytes, start).await
+            handle_mqtt(&d, cfg, body_bytes).await
         }
 
         TransportConfig::Amqp(cfg) => {
-            handle_amqp(&state, &method_str, &path, &route, cfg, body_bytes, start).await
+            handle_amqp(&d, cfg, body_bytes).await
         }
 
         // WebSocket is handled above before body extraction.
@@ -380,23 +411,18 @@ fn transport_timeout(transport: &TransportConfig) -> u64 {
 // ---------------------------------------------------------------------------
 
 async fn handle_zmq(
-    state: &AppState,
-    method_str: &str,
-    path: &str,
-    route: &crate::config::RouteConfig,
+    d: &Dispatch<'_>,
     cfg: &ZmqTransportConfig,
     body: Vec<u8>,
-    start: std::time::Instant,
 ) -> Response {
-    let matched_route = Some(route.path.clone());
+    let state = d.state;
     let gw = ZmqGateway::new();
 
     match cfg.pattern {
         ZmqPattern::ReqRep => {
             match gw.forward_req_rep(&cfg.address, body, cfg.timeout_secs).await {
                 Ok(resp_body) => {
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(method_str, path, matched_route, &cfg.address, 200, latency_ms, None).await;
+                    d.record(&cfg.address, 200, None).await;
                     finalize_response(
                         state,
                         axum::response::Response::builder()
@@ -409,8 +435,7 @@ async fn handle_zmq(
                 }
                 Err(e) => {
                     tracing::error!("ZMQ REQ/REP error: {}", e);
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(method_str, path, matched_route, &cfg.address, 502, latency_ms, Some(e.to_string())).await;
+                    d.record(&cfg.address, 502, Some(e.to_string())).await;
                     finalize_into_response(
                         state,
                         (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)),
@@ -423,14 +448,12 @@ async fn handle_zmq(
         ZmqPattern::Push => {
             match gw.forward_push(&cfg.address, body).await {
                 Ok(()) => {
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(method_str, path, matched_route, &cfg.address, 202, latency_ms, None).await;
+                    d.record(&cfg.address, 202, None).await;
                     finalize_into_response(state, StatusCode::ACCEPTED).await
                 }
                 Err(e) => {
                     tracing::error!("ZMQ PUSH error: {}", e);
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(method_str, path, matched_route, &cfg.address, 502, latency_ms, Some(e.to_string())).await;
+                    d.record(&cfg.address, 502, Some(e.to_string())).await;
                     finalize_into_response(
                         state,
                         (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)),
@@ -443,14 +466,12 @@ async fn handle_zmq(
         ZmqPattern::PubSub => {
             match gw.forward_pub(&cfg.address, body, cfg.topic.as_deref()).await {
                 Ok(()) => {
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(method_str, path, matched_route, &cfg.address, 202, latency_ms, None).await;
+                    d.record(&cfg.address, 202, None).await;
                     finalize_into_response(state, StatusCode::ACCEPTED).await
                 }
                 Err(e) => {
                     tracing::error!("ZMQ PUB error: {}", e);
-                    let latency_ms = start.elapsed().as_millis() as u64;
-                    state.metrics.record_request(method_str, path, matched_route, &cfg.address, 502, latency_ms, Some(e.to_string())).await;
+                    d.record(&cfg.address, 502, Some(e.to_string())).await;
                     finalize_into_response(
                         state,
                         (StatusCode::BAD_GATEWAY, format!("ZMQ error: {}", e)),
@@ -519,18 +540,14 @@ async fn admin_middleware(
 // ---------------------------------------------------------------------------
 
 async fn handle_graphql(
-    state: &AppState,
-    method_str: &str,
-    path: &str,
-    route: &crate::config::RouteConfig,
+    d: &Dispatch<'_>,
     cfg: &GraphQLTransportConfig,
     headers: Vec<(String, String)>,
     body: Vec<u8>,
-    start: std::time::Instant,
 ) -> Response {
     use crate::protocols::Protocol;
 
-    let matched_route = Some(route.path.clone());
+    let state = d.state;
 
     // Validate the request body via the GraphQL protocol encoder.
     let graphql_proto = crate::protocols::graphql::GraphQLProtocol::new(serde_json::Value::Null)
@@ -539,8 +556,7 @@ async fn handle_graphql(
         Ok(b) => b,
         Err(e) => {
             tracing::warn!("GraphQL validation error: {}", e);
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.url, 400, latency_ms, Some(e.to_string())).await;
+            d.record(&cfg.url, 400, Some(e.to_string())).await;
             return finalize_into_response(
                 state,
                 (StatusCode::BAD_REQUEST, format!("GraphQL error: {}", e)),
@@ -551,8 +567,7 @@ async fn handle_graphql(
 
     match state.graphql_gateway.proxy(&cfg.url, &headers, body, cfg.timeout_secs).await {
         Ok((status, resp_headers, resp_body)) => {
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.url, status, latency_ms, None).await;
+            d.record(&cfg.url, status, None).await;
             let mut builder = axum::response::Response::builder().status(status);
             for (name, value) in resp_headers {
                 builder = builder.header(name, value);
@@ -567,34 +582,27 @@ async fn handle_graphql(
         }
         Err(e) => {
             tracing::error!("GraphQL proxy error: {}", e);
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
+            d.record(&cfg.url, 502, Some(e.to_string())).await;
             finalize_into_response(state, (StatusCode::BAD_GATEWAY, "Bad gateway")).await
         }
     }
 }
 
 async fn handle_mqtt(
-    state: &AppState,
-    method_str: &str,
-    path: &str,
-    route: &crate::config::RouteConfig,
+    d: &Dispatch<'_>,
     cfg: &MqttTransportConfig,
     body: Vec<u8>,
-    start: std::time::Instant,
 ) -> Response {
-    let matched_route = Some(route.path.clone());
+    let state = d.state;
 
     match state.mqtt_gateway.publish(cfg, body).await {
         Ok(()) => {
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 202, latency_ms, None).await;
+            d.record(&cfg.broker_url, 202, None).await;
             finalize_into_response(state, StatusCode::ACCEPTED).await
         }
         Err(e) => {
             tracing::error!("MQTT publish error: {}", e);
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 502, latency_ms, Some(e.to_string())).await;
+            d.record(&cfg.broker_url, 502, Some(e.to_string())).await;
             finalize_into_response(
                 state,
                 (StatusCode::BAD_GATEWAY, format!("MQTT error: {}", e)),
@@ -605,26 +613,20 @@ async fn handle_mqtt(
 }
 
 async fn handle_amqp(
-    state: &AppState,
-    method_str: &str,
-    path: &str,
-    route: &crate::config::RouteConfig,
+    d: &Dispatch<'_>,
     cfg: &AmqpTransportConfig,
     body: Vec<u8>,
-    start: std::time::Instant,
 ) -> Response {
-    let matched_route = Some(route.path.clone());
+    let state = d.state;
 
     match state.amqp_gateway.publish(cfg, body).await {
         Ok(()) => {
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 202, latency_ms, None).await;
+            d.record(&cfg.broker_url, 202, None).await;
             finalize_into_response(state, StatusCode::ACCEPTED).await
         }
         Err(e) => {
             tracing::error!("AMQP publish error: {}", e);
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.broker_url, 502, latency_ms, Some(e.to_string())).await;
+            d.record(&cfg.broker_url, 502, Some(e.to_string())).await;
             finalize_into_response(
                 state,
                 (StatusCode::BAD_GATEWAY, format!("AMQP error: {}", e)),
@@ -639,18 +641,16 @@ async fn handle_amqp(
 // ---------------------------------------------------------------------------
 
 async fn handle_grpc(
-    state: &AppState,
-    method_str: &str,
-    path: &str,
-    route: &crate::config::RouteConfig,
+    d: &Dispatch<'_>,
     cfg: &GrpcTransportConfig,
     headers: Vec<(String, String)>,
     body: Vec<u8>,
-    start: std::time::Instant,
 ) -> Response {
     use crate::protocols::Protocol;
 
-    let matched_route = Some(route.path.clone());
+    let state = d.state;
+    let path = d.path;
+
 
     // Wrap the raw payload in a gRPC length-prefixed frame.
     let grpc_proto = crate::protocols::grpc::GrpcProtocol::new(serde_json::Value::Null)
@@ -659,8 +659,7 @@ async fn handle_grpc(
         Ok(b) => b,
         Err(e) => {
             tracing::warn!("gRPC encode error: {}", e);
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.url, 400, latency_ms, Some(e.to_string())).await;
+            d.record(&cfg.url, 400, Some(e.to_string())).await;
             return finalize_into_response(
                 state,
                 (StatusCode::BAD_REQUEST, format!("gRPC error: {}", e)),
@@ -681,8 +680,7 @@ async fn handle_grpc(
                     Ok(b) => b,
                     Err(e) => {
                         tracing::error!("gRPC response decode error: {}", e);
-                        let latency_ms = start.elapsed().as_millis() as u64;
-                        state.metrics.record_request(method_str, path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
+                        d.record(&cfg.url, 502, Some(e.to_string())).await;
                         return finalize_into_response(
                             state,
                             (StatusCode::BAD_GATEWAY, "Bad gateway: malformed gRPC response"),
@@ -693,8 +691,7 @@ async fn handle_grpc(
             } else {
                 resp_body
             };
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.url, status, latency_ms, None).await;
+            d.record(&cfg.url, status, None).await;
             let mut builder = axum::response::Response::builder().status(status);
             for (name, value) in resp_headers {
                 builder = builder.header(name, value);
@@ -709,8 +706,7 @@ async fn handle_grpc(
         }
         Err(e) => {
             tracing::error!("gRPC proxy error: {}", e);
-            let latency_ms = start.elapsed().as_millis() as u64;
-            state.metrics.record_request(method_str, path, matched_route, &cfg.url, 502, latency_ms, Some(e.to_string())).await;
+            d.record(&cfg.url, 502, Some(e.to_string())).await;
             finalize_into_response(state, (StatusCode::BAD_GATEWAY, "Bad gateway")).await
         }
     }
