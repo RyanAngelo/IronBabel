@@ -1,7 +1,6 @@
 mod common;
 
 use iron_babel::{
-    core::Gateway,
     error::Result,
     gateway::ProtocolGateway,
     protocols::Protocol,

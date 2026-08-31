@@ -139,7 +139,7 @@ async fn proxy_forwards_post_body() {
             &mock_server.uri(),
             "/api/items",
             None,
-            &[(("content-type".to_string(), "application/json".to_string()))],
+            &[("content-type".to_string(), "application/json".to_string())],
             br#"{"name":"test"}"#.to_vec(),
             5,
         )

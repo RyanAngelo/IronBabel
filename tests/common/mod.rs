@@ -1,3 +1,7 @@
+// This module is compiled into every integration-test binary, and each one
+// uses only a subset of the helpers, so unused-code warnings here are noise.
+#![allow(dead_code)]
+
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
