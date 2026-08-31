@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use zeromq::prelude::*;
 use std::sync::Arc;
-use tokio::sync::Notify;
+use crate::core::shutdown::Shutdown;
 
 use crate::config::ZmqPullListenerConfig;
 use crate::error::{Error, Result};
@@ -170,10 +170,10 @@ impl Default for ZmqGateway {
 /// Delay before re-binding a ZMQ PULL listener after its session ends.
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 
-pub async fn run_pull_listener(config: ZmqPullListenerConfig, shutdown: Arc<Notify>) {
+pub async fn run_pull_listener(config: ZmqPullListenerConfig, shutdown: Arc<Shutdown>) {
     loop {
         tokio::select! {
-            _ = shutdown.notified() => {
+            _ = shutdown.wait() => {
                 tracing::info!("ZMQ PULL listener shutting down on {}", to_tcp_addr(&config.bind));
                 return;
             }
@@ -187,7 +187,7 @@ pub async fn run_pull_listener(config: ZmqPullListenerConfig, shutdown: Arc<Noti
         }
 
         tokio::select! {
-            _ = shutdown.notified() => return,
+            _ = shutdown.wait() => return,
             _ = tokio::time::sleep(RECONNECT_DELAY) => {}
         }
     }

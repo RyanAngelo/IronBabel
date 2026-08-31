@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(licenses_dir)?;
 
     let output = Command::new("cargo")
-        .args(&["license", "--json"])
+        .args(["license", "--json"])
         .output()?;
 
     let json_str = String::from_utf8(output.stdout)?;

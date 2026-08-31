@@ -6,9 +6,10 @@ use futures::StreamExt;
 use lapin::{
     BasicProperties, Connection, ConnectionProperties, options::{
         BasicAckOptions, BasicConsumeOptions, BasicNackOptions, BasicPublishOptions,
+        ConfirmSelectOptions,
     }, types::FieldTable,
 };
-use tokio::sync::Notify;
+use crate::core::shutdown::Shutdown;
 
 use crate::config::{AmqpConsumeListenerConfig, AmqpTransportConfig};
 use crate::error::{Error, Result};
@@ -40,7 +41,18 @@ impl AmqpGateway {
                 properties = properties.with_content_type(content_type.clone().into());
             }
 
+            // Put the channel in confirm mode. Without this, the `PublisherConfirm`
+            // returned by `basic_publish` resolves instantly to
+            // `Confirmation::NotRequested`, so awaiting it proves nothing and the
+            // gateway would report 202 for messages the broker never accepted.
             channel
+                .confirm_select(ConfirmSelectOptions::default())
+                .await
+                .map_err(|e| {
+                    Error::Protocol(format!("AMQP enable publisher confirms failed: {}", e))
+                })?;
+
+            let confirmation = channel
                 .basic_publish(
                     &cfg.exchange,
                     &cfg.routing_key,
@@ -55,6 +67,25 @@ impl AmqpGateway {
                 .map_err(|e| Error::Protocol(format!("AMQP publish failed: {}", e)))?
                 .await
                 .map_err(|e| Error::Protocol(format!("AMQP publish confirm failed: {}", e)))?;
+
+            // A broker-side rejection (nack), or a `mandatory` publish that no
+            // queue accepted and was returned, must surface as an error instead
+            // of a silent 202.
+            if confirmation.is_nack() {
+                return Err(Error::Protocol(format!(
+                    "AMQP publish to exchange '{}' with routing key '{}' was nacked by the broker",
+                    cfg.exchange, cfg.routing_key
+                )));
+            }
+            if let Some(returned) = confirmation.take_message() {
+                return Err(Error::Protocol(format!(
+                    "AMQP publish to exchange '{}' with routing key '{}' was returned undelivered: {} {}",
+                    cfg.exchange,
+                    cfg.routing_key,
+                    returned.reply_code,
+                    returned.reply_text.as_str(),
+                )));
+            }
 
             connection
                 .close(200, "publish complete")
@@ -82,13 +113,13 @@ impl Default for AmqpGateway {
 /// Delay before attempting to reconnect a consumer session after it ends.
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 
-pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: Arc<Notify>) {
+pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: Arc<Shutdown>) {
     loop {
         // Run one consumer session, racing it against shutdown. A healthy
         // session never returns, so the shutdown branch is what stops the loop;
         // a connection/stream error ends the session and we reconnect.
         tokio::select! {
-            _ = shutdown.notified() => {
+            _ = shutdown.wait() => {
                 tracing::info!("AMQP consumer listener shutting down: {}", config.forward_to);
                 return;
             }
@@ -103,7 +134,7 @@ pub async fn run_consumer_listener(config: AmqpConsumeListenerConfig, shutdown: 
 
         // Backoff before reconnecting, but exit immediately on shutdown.
         tokio::select! {
-            _ = shutdown.notified() => return,
+            _ = shutdown.wait() => return,
             _ = tokio::time::sleep(RECONNECT_DELAY) => {}
         }
     }

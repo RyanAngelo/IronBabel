@@ -452,17 +452,11 @@ impl Default for RateLimitConfig {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct LoggingConfig {
     /// Set to true to log requests and responses through the middleware chain.
     #[serde(default)]
     pub enabled: bool,
-}
-
-impl Default for LoggingConfig {
-    fn default() -> Self {
-        Self { enabled: false }
-    }
 }
 
 // ---------------------------------------------------------------------------

@@ -9,7 +9,7 @@ use axum::{
 };
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
-use tokio::sync::{Mutex, Notify};
+use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
@@ -30,6 +30,7 @@ use crate::config::{
 };
 use crate::gateway::zmq::ZmqGateway;
 use crate::core::middleware::{AuthMiddleware, MiddlewareChain, RateLimitMiddleware};
+use crate::core::shutdown::Shutdown;
 use crate::core::types::MiddlewareConfig;
 use super::Gateway;
 
@@ -46,7 +47,6 @@ pub struct AppState {
     pub mqtt_gateway: Arc<MqttGateway>,
     pub amqp_gateway: Arc<AmqpGateway>,
     pub metrics: Arc<MetricsStore>,
-    pub config_routes: Vec<crate::config::RouteConfig>,
     pub middleware: Arc<MiddlewareChain>,
     pub config_store: Arc<AdminConfigStore>,
 }
@@ -731,11 +731,10 @@ pub struct DefaultGateway {
     mqtt_gateway: Arc<MqttGateway>,
     amqp_gateway: Arc<AmqpGateway>,
     metrics: Arc<MetricsStore>,
-    config_routes: Vec<crate::config::RouteConfig>,
     listeners: Vec<ListenerConfig>,
     middleware: Arc<MiddlewareChain>,
     config_store: Arc<AdminConfigStore>,
-    shutdown: Arc<Notify>,
+    shutdown: Arc<Shutdown>,
     runtime: Mutex<RuntimeHandles>,
 }
 
@@ -748,6 +747,10 @@ impl Gateway for DefaultGateway {
                 "Gateway is already running".to_string(),
             ));
         }
+
+        // Clear any latched signal from a previous run before spawning tasks,
+        // otherwise they would observe the old shutdown and exit immediately.
+        self.shutdown.reset();
 
         let addr = format!("{}:{}", self.host, self.port);
         let listener = TcpListener::bind(&addr).await.map_err(crate::error::Error::Io)?;
@@ -763,7 +766,6 @@ impl Gateway for DefaultGateway {
             mqtt_gateway: Arc::clone(&self.mqtt_gateway),
             amqp_gateway: Arc::clone(&self.amqp_gateway),
             metrics: Arc::clone(&self.metrics),
-            config_routes: self.config_routes.clone(),
             middleware: Arc::clone(&self.middleware),
             config_store: Arc::clone(&self.config_store),
         };
@@ -775,7 +777,7 @@ impl Gateway for DefaultGateway {
             let mut interval = tokio::time::interval(Duration::from_secs(1));
             loop {
                 tokio::select! {
-                    _ = metrics_shutdown.notified() => break,
+                    _ = metrics_shutdown.wait() => break,
                     _ = interval.tick() => metrics_tick.tick().await,
                 }
             }
@@ -842,7 +844,7 @@ impl Gateway for DefaultGateway {
             .layer(RequestBodyLimitLayer::new(10 * 1024 * 1024));
 
         let shutdown = Arc::clone(&self.shutdown);
-        let shutdown_signal = async move { shutdown.notified().await };
+        let shutdown_signal = async move { shutdown.wait().await };
 
         // Use `into_make_service_with_connect_info` so that handlers can extract
         // the verified remote `SocketAddr` via `ConnectInfo<SocketAddr>`. This
@@ -866,13 +868,15 @@ impl Gateway for DefaultGateway {
     }
 
     async fn stop(&self) -> Result<()> {
-        self.shutdown.notify_waiters();
-
         let (server_handle, metrics_handle, listener_handles) = {
             let mut runtime = self.runtime.lock().await;
             if !runtime.running {
                 return Ok(());
             }
+
+            // Latch the signal while holding the runtime lock, so a concurrent
+            // `start()` cannot spawn fresh tasks that miss this shutdown.
+            self.shutdown.trigger();
 
             runtime.running = false;
             (
@@ -931,11 +935,10 @@ pub fn create_gateway(config: crate::config::GatewayConfig) -> Result<DefaultGat
         mqtt_gateway,
         amqp_gateway,
         metrics,
-        config_routes: config.routes,
         listeners: config.listeners,
         middleware,
         config_store: admin_config,
-        shutdown: Arc::new(Notify::new()),
+        shutdown: Shutdown::new(),
         runtime: Mutex::new(RuntimeHandles::default()),
     })
 }

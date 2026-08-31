@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use rumqttc::{AsyncClient, Event, MqttOptions, Outgoing, Packet, QoS, Transport};
-use tokio::sync::Notify;
+use crate::core::shutdown::Shutdown;
 
 use crate::config::{MqttSubListenerConfig, MqttTransportConfig};
 use crate::error::{Error, Result};
@@ -42,20 +42,46 @@ impl MqttGateway {
                 .publish(cfg.topic.clone(), qos, cfg.retain, body)
                 .await
                 .map_err(|e| Error::Protocol(format!("MQTT publish failed: {}", e)))?;
-            client
-                .disconnect()
-                .await
-                .map_err(|e| Error::Protocol(format!("MQTT disconnect failed: {}", e)))?;
 
+            // Drive the event loop until the broker has taken responsibility for
+            // the message, *then* disconnect. Queuing the DISCONNECT immediately
+            // after the PUBLISH meant the loop could observe
+            // `Outgoing::Disconnect` before the PUBACK/PUBCOMP arrived, so the
+            // gateway returned 202 for a QoS 1/2 message that was never
+            // acknowledged. QoS 0 has no acknowledgement at all, so the
+            // strongest available guarantee is that the packet reached the wire.
             loop {
                 match eventloop.poll().await {
-                    Ok(Event::Outgoing(Outgoing::Disconnect)) => return Ok(()),
+                    Ok(Event::Outgoing(Outgoing::Publish(_))) if qos == QoS::AtMostOnce => break,
+                    Ok(Event::Incoming(Packet::PubAck(_))) if qos == QoS::AtLeastOnce => break,
+                    Ok(Event::Incoming(Packet::PubComp(_))) if qos == QoS::ExactlyOnce => break,
                     Ok(_) => {}
                     Err(e) => {
                         return Err(Error::Protocol(format!(
                             "MQTT event loop failed during publish: {}",
                             e
                         )));
+                    }
+                }
+            }
+
+            // The message is acknowledged at this point, so a failure to close
+            // cleanly is logged rather than reported as a publish failure.
+            if let Err(e) = client.disconnect().await {
+                tracing::warn!("MQTT disconnect request failed after publish: {}", e);
+                return Ok(());
+            }
+
+            loop {
+                match eventloop.poll().await {
+                    Ok(Event::Outgoing(Outgoing::Disconnect)) => return Ok(()),
+                    Ok(_) => {}
+                    Err(e) => {
+                        tracing::warn!(
+                            "MQTT event loop error during disconnect (message already acknowledged): {}",
+                            e
+                        );
+                        return Ok(());
                     }
                 }
             }
@@ -81,7 +107,7 @@ impl Default for MqttGateway {
 /// Delay before reconnecting an MQTT subscriber session after it ends.
 const RECONNECT_DELAY: Duration = Duration::from_secs(5);
 
-pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notify>) {
+pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Shutdown>) {
     // Validate config once up front — a bad broker URL or QoS will never become
     // valid, so there is no point reconnecting on those.
     let endpoint = match parse_broker_url(&config.broker_url) {
@@ -101,7 +127,7 @@ pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notif
 
     loop {
         tokio::select! {
-            _ = shutdown.notified() => {
+            _ = shutdown.wait() => {
                 tracing::info!("MQTT subscriber listener shutting down: {}", config.forward_to);
                 return;
             }
@@ -115,7 +141,7 @@ pub async fn run_sub_listener(config: MqttSubListenerConfig, shutdown: Arc<Notif
         }
 
         tokio::select! {
-            _ = shutdown.notified() => return,
+            _ = shutdown.wait() => return,
             _ = tokio::time::sleep(RECONNECT_DELAY) => {}
         }
     }

@@ -217,11 +217,7 @@ impl MetricsStore {
             .unwrap_or_default()
             .as_secs();
         let window = 5u64;
-        let count: u64 = buckets
-            .iter()
-            .filter(|b| b.timestamp_secs >= now_secs.saturating_sub(window))
-            .map(|b| b.request_count)
-            .sum();
+        let count = count_in_window(&buckets, now_secs, window);
         // Divide by the actual observed span, not always the full window: right
         // after startup fewer than `window` seconds of data exist, so dividing
         // by the full window would systematically under-report RPS.
@@ -254,6 +250,21 @@ impl Default for MetricsStore {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Sums the request counts of the buckets covering the last `window` seconds,
+/// i.e. the inclusive range `[now_secs - window + 1, now_secs]`.
+///
+/// The range must span exactly `window` one-second buckets: a `>= now - window`
+/// bound spans `window + 1` buckets while the caller still divides by `window`,
+/// which inflated the reported RPS by ~20%.
+fn count_in_window(buckets: &VecDeque<TimeBucket>, now_secs: u64, window: u64) -> u64 {
+    let oldest = now_secs.saturating_sub(window.saturating_sub(1));
+    buckets
+        .iter()
+        .filter(|b| b.timestamp_secs >= oldest && b.timestamp_secs <= now_secs)
+        .map(|b| b.request_count)
+        .sum()
 }
 
 /// Nearest-rank percentile over an ascending-sorted slice.
@@ -332,5 +343,37 @@ mod tests {
             .await;
         let (p50, _p95, _p99) = store.get_percentiles().await;
         assert_eq!(p50, 10.0);
+    }
+    fn bucket(timestamp_secs: u64, request_count: u64) -> TimeBucket {
+        TimeBucket {
+            timestamp_secs,
+            request_count,
+            total_latency_ms: 0,
+            error_count: 0,
+        }
+    }
+
+    #[test]
+    fn count_in_window_spans_exactly_window_buckets() {
+        // One request in each of seconds 100..=110.
+        let buckets: VecDeque<TimeBucket> = (100..=110).map(|t| bucket(t, 1)).collect();
+
+        // Window of 5 ending at second 110 covers 106..=110 — five buckets.
+        // The previous `>= now - window` bound also included 105, giving 6.
+        assert_eq!(count_in_window(&buckets, 110, 5), 5);
+    }
+
+    #[test]
+    fn count_in_window_excludes_future_buckets() {
+        let buckets: VecDeque<TimeBucket> = (100..=120).map(|t| bucket(t, 1)).collect();
+        // Buckets after `now` must not be counted.
+        assert_eq!(count_in_window(&buckets, 110, 5), 5);
+    }
+
+    #[test]
+    fn count_in_window_saturates_near_epoch() {
+        let buckets: VecDeque<TimeBucket> = (0..=3).map(|t| bucket(t, 2)).collect();
+        // now = 2, window = 5 must not underflow; covers 0..=2.
+        assert_eq!(count_in_window(&buckets, 2, 5), 6);
     }
 }

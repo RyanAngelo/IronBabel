@@ -1,7 +1,5 @@
 //! Tests for DefaultGateway lifecycle and create_gateway factory logic.
 
-mod common;
-
 use iron_babel::config::{
     AmqpTransportConfig, GatewayConfig, HttpTransportConfig, MqttTransportConfig, ProtocolConfig,
     RouteConfig, TransportConfig,
@@ -746,4 +744,83 @@ async fn admin_config_endpoints_expose_schema_and_persist_valid_drafts() {
     );
 
     gateway.stop().await.unwrap();
+}
+
+// ---------------------------------------------------------------------------
+// Shutdown-signal race
+// ---------------------------------------------------------------------------
+
+/// `stop()` must not hang when it is called before the freshly spawned listener
+/// and metrics tasks have begun waiting on the shutdown signal.
+///
+/// Regression: the signal used to be a bare `tokio::sync::Notify`, whose
+/// `notify_waiters()` only wakes futures that have *already* registered. A task
+/// spawned microseconds earlier would miss the wake-up entirely and run
+/// forever, leaving `stop()` blocked on its `JoinHandle`. The signal now latches
+/// its state, so a late waiter observes the shutdown immediately.
+#[tokio::test]
+async fn gateway_stop_immediately_after_start_does_not_hang() {
+    use iron_babel::config::{ListenerConfig, ZmqPullListenerConfig};
+
+    let config = GatewayConfig {
+        host: "127.0.0.1".to_string(),
+        port: free_port(),
+        protocols: vec![],
+        routes: vec![],
+        // Listeners are the tasks most likely to lose the race, since they are
+        // spawned last and do real I/O before reaching their select loop.
+        listeners: vec![ListenerConfig::ZmqPull(ZmqPullListenerConfig {
+            bind: format!("127.0.0.1:{}", free_port()),
+            forward_to: "http://127.0.0.1:9/unused".to_string(),
+        })],
+        middleware: Default::default(),
+    };
+
+    let gateway = create_gateway(config).unwrap();
+    gateway.start().await.unwrap();
+
+    // Deliberately no sleep: stop racing the just-spawned tasks.
+    tokio::time::timeout(std::time::Duration::from_secs(10), gateway.stop())
+        .await
+        .expect("stop() must not hang when it races task startup")
+        .expect("stop() should succeed");
+}
+
+/// The latched signal must be cleared on restart, otherwise every task spawned
+/// by the second `start()` would see a stale shutdown and exit at once.
+#[tokio::test]
+async fn gateway_restart_clears_latched_shutdown_signal() {
+    let port = free_port();
+    let config = GatewayConfig {
+        host: "127.0.0.1".to_string(),
+        port,
+        protocols: vec![],
+        routes: vec![],
+        listeners: vec![],
+        middleware: Default::default(),
+    };
+
+    let gateway = create_gateway(config).unwrap();
+
+    gateway.start().await.unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(10), gateway.stop())
+        .await
+        .expect("first stop() must not hang")
+        .unwrap();
+
+    // Second run: the server must actually serve again.
+    gateway.start().await.unwrap();
+    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+
+    let resp = reqwest::get(format!("http://127.0.0.1:{}/anything", port)).await;
+    assert!(
+        resp.is_ok(),
+        "server should be serving again after restart, got: {:?}",
+        resp.err()
+    );
+
+    tokio::time::timeout(std::time::Duration::from_secs(10), gateway.stop())
+        .await
+        .expect("second stop() must not hang")
+        .unwrap();
 }
